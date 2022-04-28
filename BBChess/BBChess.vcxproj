@@ -139,7 +139,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="BBChess.cpp" />
+    <ClCompile Include="attack.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="bitboard.cpp" />
+    <ClCompile Include="eval.cpp" />
+    <ClCompile Include="gen.cpp" />
+    <ClCompile Include="hash.cpp" />
+    <ClCompile Include="init.cpp" />
+    <ClCompile Include="search.cpp" />
+    <ClCompile Include="update.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="globlas.h" />
