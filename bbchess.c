@@ -167,18 +167,14 @@ u64 mask_pawn_attacks(int color, int square) {
 	// white pawn attacks
 	if (color == white) {
 		// generate white pawn attacks
-		if ((pawn >> 7) & not_a_file)
-			attacks |= (pawn >> 7);
-		if ((pawn >> 9) & not_h_file)
-			attacks |= (pawn >> 9);
+		if ((pawn >> 7) & not_a_file) attacks |= (pawn >> 7);
+		if ((pawn >> 9) & not_h_file) attacks |= (pawn >> 9);
 	}
 	// black pawn attacks
 	else {
 		// generate black pawn attacks
-		if ((pawn << 7) & not_h_file)
-			attacks |= (pawn << 7);
-		if ((pawn << 9) & not_a_file)
-			attacks |= (pawn << 9);
+		if ((pawn << 7) & not_h_file) attacks |= (pawn << 7);
+		if ((pawn << 9) & not_a_file) attacks |= (pawn << 9);
 	}
 
 	return attacks;
@@ -198,22 +194,15 @@ u64 mask_knight_attacks(int square) {
 	u64 attacks = 0ULL;
 
 	// generate knight attacks (17, 15, 10, 6, -17, -15, -10, -6)
-	if ((knight >> 17) & not_h_file)
-		attacks |= (knight >> 17);
-	if ((knight >> 15) & not_a_file)
-		attacks |= (knight >> 15);
-	if ((knight >> 10) & not_gh_files)
-		attacks |= (knight >> 10);
-	if ((knight >> 6) & not_ab_files)
-		attacks |= (knight >> 6);
-	if ((knight << 17) & not_a_file)
-		attacks |= (knight << 17);
-	if ((knight << 15) & not_h_file)
-		attacks |= (knight << 15);
-	if ((knight << 10) & not_ab_files)
-		attacks |= (knight << 10);
-	if ((knight << 6) & not_gh_files)
-		attacks |= (knight << 6);
+	if ((knight >> 17) & not_h_file) 	attacks |= (knight >> 17);
+	if ((knight >> 15) & not_a_file) 	attacks |= (knight >> 15);
+	if ((knight >> 10) & not_gh_files) 	attacks |= (knight >> 10);
+	if ((knight >> 6)  & not_ab_files) 	attacks |= (knight >> 6);
+
+	if ((knight << 17) & not_a_file) 	attacks |= (knight << 17);
+	if ((knight << 15) & not_h_file) 	attacks |= (knight << 15);
+	if ((knight << 10) & not_ab_files) 	attacks |= (knight << 10);
+	if ((knight << 6)  & not_gh_files) 	attacks |= (knight << 6);
 
 	return attacks;
 }
@@ -232,22 +221,15 @@ u64 mask_king_attacks(int square) {
 	u64 attacks = 0ULL;
 
 	// generate king attacks (8, -8, 1, -1, 7, -7, 9, -9)
-	if (king >> 9 & not_h_file)
-		attacks |= (king >> 9);
-	if (king >> 8)
-		attacks |= (king >> 8);
-	if (king >> 7 & not_a_file)
-		attacks |= (king >> 7);
-	if (king >> 1 & not_h_file)
-		attacks |= (king >> 1);
-	if (king << 9 & not_a_file)
-		attacks |= (king << 9);
-	if (king << 8)
-		attacks |= (king << 8);
-	if (king << 7 & not_h_file)
-		attacks |= (king << 7);
-	if (king << 1 & not_a_file)
-		attacks |= (king << 1);
+	if (king >> 8)				attacks |= (king >> 8);
+	if (king >> 9 & not_h_file)	attacks |= (king >> 9);
+	if (king >> 7 & not_a_file)	attacks |= (king >> 7);
+	if (king >> 1 & not_h_file)	attacks |= (king >> 1);
+
+	if (king << 8)				attacks |= (king << 8);
+	if (king << 9 & not_a_file)	attacks |= (king << 9);
+	if (king << 7 & not_h_file)	attacks |= (king << 7);
+	if (king << 1 & not_a_file)	attacks |= (king << 1);
 
 	return attacks;
 }
@@ -273,14 +255,39 @@ u64 mask_bishop_attacks(int square) {
 	int tf = square % 8;
 
 	// mask relevant bishop occupancy bits
-	for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++)
-		attacks |= (1ULL << (r * 8 + f));
-	for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++)
-		attacks |= (1ULL << (r * 8 + f));
-	for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--)
-		attacks |= (1ULL << (r * 8 + f));
-	for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--)
-		attacks |= (1ULL << (r * 8 + f));
+	for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++) attacks |= (1ULL << (r * 8 + f)); 
+	for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++) attacks |= (1ULL << (r * 8 + f));
+	for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--) attacks |= (1ULL << (r * 8 + f));
+	for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--) attacks |= (1ULL << (r * 8 + f));
+
+	return attacks;
+}
+
+/**
+ * Precalculate rook attacks.
+ * @param square The square from which to calculate the rook attacks from.
+ * @return The bitboard with the rook attacks from the given square.
+ */
+u64 mask_rook_attacks(int square) {
+	// bishop bitboard
+	u64 rook = 0ULL;
+	set_bit(rook, square);
+
+	// bishop attacks bitboard
+	u64 attacks = 0ULL;
+
+	// init ranks and files	
+	int r, f;
+
+	// init target rank & files
+	int tr = square / 8;
+	int tf = square % 8;
+
+	// mask relevant bishop occupancy bits
+	for (r = tr + 1; r <= 6; r++) attacks |= (1ULL << (r * 8 + tf));
+	for (r = tr - 1; r >= 1; r--) attacks |= (1ULL << (r * 8 + tf));
+	for (f = tf + 1; f <= 6; f++) attacks |= (1ULL << (tr * 8 + f));
+	for (f = tf - 1; f >= 1; f--) attacks |= (1ULL << (tr * 8 + f));
 
 	return attacks;
 }
@@ -311,7 +318,7 @@ int main() {
 	init_leapers_attacks();
 
 	for (int square = 0; square < 64; square++)
-		print_bitboard(mask_bishop_attacks(square), "Bishop attacks from square");
+		print_bitboard(mask_rook_attacks(square), "Rook attacks from d4");
 
 	return 0;
 }
