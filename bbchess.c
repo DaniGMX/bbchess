@@ -141,17 +141,20 @@ const u64 not_h_file = 9187201950435737471ULL;
  */
 const u64 not_gh_files = 4557430888798830399ULL;
 
-/** Table containing the bitboards of pawn attacks from every square. */
+/** Table containing the bitboards of both colors pawn attacks from each square. */
 u64 pawn_attacks[2][64];
 
-/** Array containing the bitboards of knight attacks from every square. */
-u64 knigh_attacks[64];
+/** Array containing the bitboards of knight attacks from each square. */
+u64 knight_attacks[64];
+
+/** Array containing the bitboards of king attacks from each square. */
+u64 king_attacks[64];
 
 /**
  * Precalculate pawn attacks.
  * @param color The color of the pawn to calculate the attacks from.
  * @param square The square from which to calculate the attacks from.
- * @return The bitboard with the attacks from the given square.
+ * @return The bitboard with the pawn attacks from the given square.
  */
 u64 mask_pawn_attacks(int color, int square) {
 	// pawn bitboard
@@ -185,7 +188,7 @@ u64 mask_pawn_attacks(int color, int square) {
 /**
  * Precalculate knight attacks.
  * @param square The square from which to calculate the attacks from.
- * @return The bitboard with the attacks from the given square.
+ * @return The bitboard with the knight attacks from the given square.
  */
 u64 mask_knight_attacks(int square) {
 	// knight bitboard
@@ -217,6 +220,39 @@ u64 mask_knight_attacks(int square) {
 	return attacks;
 }
 
+/**
+ * Precalculate king attacks.
+ * @param square The square from which to calculate the attacks from.
+ * @return The bitboard with the king attacks from the given square.
+ */
+u64 mask_king_attacks(int square) {
+	// king bitboard
+	u64 king = 0ULL;
+	set_bit(king, square);
+
+	// king attacks bitboard
+	u64 attacks = 0ULL;
+
+	// generate king attacks (8, -8, 1, -1, 7, -7, 9, -9)
+	if (king >> 9 & not_h_file)
+		attacks |= (king >> 9);
+	if (king >> 8)
+		attacks |= (king >> 8);
+	if (king >> 7 & not_a_file)
+		attacks |= (king >> 7);
+	if (king >> 1 & not_h_file)
+		attacks |= (king >> 1);
+	if (king << 9 & not_a_file)
+		attacks |= (king << 9);
+	if (king << 8)
+		attacks |= (king << 8);
+	if (king << 7 & not_h_file)
+		attacks |= (king << 7);
+	if (king << 1 & not_a_file)
+		attacks |= (king << 1);
+
+	return attacks;
+}
 
 /**
  * Initialize attacks for all leaper pieces (pawns, knights & kings).
@@ -229,8 +265,10 @@ void init_leapers_attacks() {
 		pawn_attacks[black][square] = mask_pawn_attacks(black, square);
 
 		// initialize knight attacks
-		knigh_attacks[square] = mask_knight_attacks(square);
+		knight_attacks[square] = mask_knight_attacks(square);
+
 		// initialize king attacks
+		king_attacks[square] = mask_king_attacks(square);
 	}
 }
 
