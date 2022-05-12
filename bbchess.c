@@ -152,8 +152,8 @@ u64 king_attacks[64];
 
 /**
  * Precalculate pawn attacks.
- * @param color The color of the pawn to calculate the attacks from.
- * @param square The square from which to calculate the attacks from.
+ * @param color The color of the pawn to calculate its attacks from.
+ * @param square The square from which to calculate its attacks from.
  * @return The bitboard with the pawn attacks from the given square.
  */
 u64 mask_pawn_attacks(int color, int square) {
@@ -181,13 +181,12 @@ u64 mask_pawn_attacks(int color, int square) {
 			attacks |= (pawn << 9);
 	}
 
-	// return attack map
 	return attacks;
 }
 
 /**
  * Precalculate knight attacks.
- * @param square The square from which to calculate the attacks from.
+ * @param square The square from which to calculate the knight attacks from.
  * @return The bitboard with the knight attacks from the given square.
  */
 u64 mask_knight_attacks(int square) {
@@ -216,13 +215,12 @@ u64 mask_knight_attacks(int square) {
 	if ((knight << 6) & not_gh_files)
 		attacks |= (knight << 6);
 
-	// return attack map
 	return attacks;
 }
 
 /**
  * Precalculate king attacks.
- * @param square The square from which to calculate the attacks from.
+ * @param square The square from which to calculate the king attacks from.
  * @return The bitboard with the king attacks from the given square.
  */
 u64 mask_king_attacks(int square) {
@@ -255,6 +253,39 @@ u64 mask_king_attacks(int square) {
 }
 
 /**
+ * Precalculate bishop attacks.
+ * @param square The square from which to calculate the bishop attacks from.
+ * @return The bitboard with the bishop attacks from the given square.
+ */
+u64 mask_bishop_attacks(int square) {
+	// bishop bitboard
+	u64 bishop = 0ULL;
+	set_bit(bishop, square);
+
+	// bishop attacks bitboard
+	u64 attacks = 0ULL;
+
+	// init ranks and files	
+	int r, f;
+
+	// init target rank & files
+	int tr = square / 8;
+	int tf = square % 8;
+
+	// mask relevant bishop occupancy bits
+	for (r = tr + 1, f = tf + 1; r <= 6 && f <= 6; r++, f++)
+		attacks |= (1ULL << (r * 8 + f));
+	for (r = tr - 1, f = tf + 1; r >= 1 && f <= 6; r--, f++)
+		attacks |= (1ULL << (r * 8 + f));
+	for (r = tr + 1, f = tf - 1; r <= 6 && f >= 1; r++, f--)
+		attacks |= (1ULL << (r * 8 + f));
+	for (r = tr - 1, f = tf - 1; r >= 1 && f >= 1; r--, f--)
+		attacks |= (1ULL << (r * 8 + f));
+
+	return attacks;
+}
+
+/**
  * Initialize attacks for all leaper pieces (pawns, knights & kings).
  */
 void init_leapers_attacks() {
@@ -278,6 +309,9 @@ void init_leapers_attacks() {
 int main() {
 	// initialize leaper pieces attacks
 	init_leapers_attacks();
+
+	for (int square = 0; square < 64; square++)
+		print_bitboard(mask_bishop_attacks(square), "Bishop attacks from square");
 
 	return 0;
 }
