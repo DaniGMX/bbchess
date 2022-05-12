@@ -61,10 +61,10 @@ void print_bitboard(u64 bitboard, char* msg) {
 		printf("- Description:\t%s\n", msg);
 
 	// print decimal value of bitboard
-	printf("- Base 10:\t%llud\n", bitboard);
+	printf("- Base 10:\t%020llud\n", bitboard);
 
 	// print bitboard as a board of bits
-	printf("- Board:\t   A B C D E F G H\n");
+	printf("- Board:\t");
 
 	// loop over rank and files
 	for (int rank = 0; rank < 8; rank++) {
@@ -73,14 +73,16 @@ void print_bitboard(u64 bitboard, char* msg) {
 			int square = rank * 8 + file;
 			
 			if (!file)
-				printf("\t\t%d ", 8 - rank);
+				printf("%d ", 8 - rank);
 
 			// print bit state (either 1 or 0)
 			printf(" %d", get_bit(bitboard, square) ? 1 : 0);
 		}
 		// print new line
-		printf("\n");
+		printf("\n\t\t");
 	}
+
+	printf("   A B C D E F G H\n");
 }
 
 #pragma endregion
@@ -139,44 +141,105 @@ const u64 not_h_file = 9187201950435737471ULL;
  */
 const u64 not_gh_files = 4557430888798830399ULL;
 
-// Pawn attacks table [color][square]
+/** Table containing the bitboards of pawn attacks from every square. */
 u64 pawn_attacks[2][64];
+
+/** Array containing the bitboards of knight attacks from every square. */
+u64 knigh_attacks[64];
 
 /**
  * Precalculate pawn attacks.
  * @param color The color of the pawn to calculate the attacks from.
  * @param square The square from which to calculate the attacks from.
+ * @return The bitboard with the attacks from the given square.
  */
 u64 mask_pawn_attacks(int color, int square) {
-	// result attack bitboard
+	// pawn bitboard
+	u64 pawn = 0ULL;
+	set_bit(pawn, square);
+
+	// pawn attacks bitboard
 	u64 attacks = 0ULL;
 	
-	// piece bitboard
-	u64 bitboard = 0ULL;
-	
-	// set piece
-	set_bit(bitboard, square);
-
 	// white pawn attacks
 	if (color == white) {
-		if ((bitboard >> 7) & not_a_file) attacks |= (bitboard >> 7);
-		if ((bitboard >> 9) & not_h_file) attacks |= (bitboard >> 9);
+		// generate white pawn attacks
+		if ((pawn >> 7) & not_a_file)
+			attacks |= (pawn >> 7);
+		if ((pawn >> 9) & not_h_file)
+			attacks |= (pawn >> 9);
 	}
 	// black pawn attacks
 	else {
-		if ((bitboard << 7) & not_h_file) attacks |= (bitboard << 7);
-		if ((bitboard << 9) & not_a_file) attacks |= (bitboard << 9);
+		// generate black pawn attacks
+		if ((pawn << 7) & not_h_file)
+			attacks |= (pawn << 7);
+		if ((pawn << 9) & not_a_file)
+			attacks |= (pawn << 9);
 	}
 
 	// return attack map
 	return attacks;
 }
 
+/**
+ * Precalculate knight attacks.
+ * @param square The square from which to calculate the attacks from.
+ * @return The bitboard with the attacks from the given square.
+ */
+u64 mask_knight_attacks(int square) {
+	// knight bitboard
+	u64 knight = 0ULL;
+	set_bit(knight, square);
+
+	// knight attacks bitboard
+	u64 attacks = 0ULL;
+
+	// generate knight attacks (17, 15, 10, 6, -17, -15, -10, -6)
+	if ((knight >> 17) & not_h_file)
+		attacks |= (knight >> 17);
+	if ((knight >> 15) & not_a_file)
+		attacks |= (knight >> 15);
+	if ((knight >> 10) & not_gh_files)
+		attacks |= (knight >> 10);
+	if ((knight >> 6) & not_ab_files)
+		attacks |= (knight >> 6);
+	if ((knight << 17) & not_a_file)
+		attacks |= (knight << 17);
+	if ((knight << 15) & not_h_file)
+		attacks |= (knight << 15);
+	if ((knight << 10) & not_ab_files)
+		attacks |= (knight << 10);
+	if ((knight << 6) & not_gh_files)
+		attacks |= (knight << 6);
+
+	// return attack map
+	return attacks;
+}
+
+
+/**
+ * Initialize attacks for all leaper pieces (pawns, knights & kings).
+ */
+void init_leapers_attacks() {
+	// loop over all squares
+	for (int square = 0; square < 64; square++) {
+		// initialize pawn attacks
+		pawn_attacks[white][square] = mask_pawn_attacks(white, square);
+		pawn_attacks[black][square] = mask_pawn_attacks(black, square);
+
+		// initialize knight attacks
+		knigh_attacks[square] = mask_knight_attacks(square);
+		// initialize king attacks
+	}
+}
+
 #pragma endregion
 
 // main function
 int main() {
-	print_bitboard(mask_pawn_attacks(white, e4), "Available white pawn attacks from e4");
-	print_bitboard(mask_pawn_attacks(black, e4), "Available black pawn attacks from e4");
+	// initialize leaper pieces attacks
+	init_leapers_attacks();
+
 	return 0;
 }
