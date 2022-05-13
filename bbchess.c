@@ -41,10 +41,16 @@ enum { white, black };
 
 #pragma region Random Number Generation
 
-// generate 32-bit pseudo legal numbers
+/** Seed for random number generation. */
+unsigned int seed = 1804289383;
+
+/**
+ * Generates a 32-bit random unsigned integer.
+ * @returns A random 32-bit unsigned integer.
+ */
 unsigned int psrandom_u32() {
 	// get current state
-	unsigned int num = state;
+	unsigned int num = seed;
 
 	// XOR shift algorithm
 	num ^= num << 13;
@@ -52,31 +58,43 @@ unsigned int psrandom_u32() {
 	num ^= num << 5;
 
 	// update state
-	state = num;
+	seed = num;
 
 	// return random number
 	return num;	
 }
 
-// generate 64-bit pseudo legal numbers
+/**
+ * Generates a 64-bit random unsigned integer.
+ * @returns A random 64-bit unsigned integer.
+ */
 u64 psrandom_u64() {
 	// define 4 random numbers
 	u64 n1, n2, n3, n4;
 
 	// initialize random numbers
-	n1 = (u64)(psrandom_u32() & 0xFFFF);
-	n2 = (u64)(psrandom_u32() & 0xFFFF);
-	n3 = (u64)(psrandom_u32() & 0xFFFF);
-	n4 = (u64)(psrandom_u32() & 0xFFFF);
+	n1 = (u64)(psrandom_u32()) & 0xFFFF;
+	n2 = (u64)(psrandom_u32()) & 0xFFFF;
+	n3 = (u64)(psrandom_u32()) & 0xFFFF;
+	n4 = (u64)(psrandom_u32()) & 0xFFFF;
 
 	//return random number
 	return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
 }
 
-// generate magic number candidate
+/**
+ * Generates a magic number candidate.
+ * @returns A magic number candidate.
+ */
 u64 magic_number() {
 	return psrandom_u64() & psrandom_u64() & psrandom_u64();
 }
+
+#pragma endregion
+
+#pragma region Magic Numbers
+
+
 
 #pragma endregion
 
@@ -526,10 +544,6 @@ u64 set_occupancy(int index, int bits_in_mask, u64 attack_mask) {
 }
 
 #pragma endregion
-
-// pseudorandom number state
-unsigned int state = 1804289383;
-
 
 // main function
 int main() {
