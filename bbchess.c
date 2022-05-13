@@ -39,6 +39,47 @@ enum { white, black };
 
 #pragma endregion
 
+#pragma region Random Number Generation
+
+// generate 32-bit pseudo legal numbers
+unsigned int psrandom_u32() {
+	// get current state
+	unsigned int num = state;
+
+	// XOR shift algorithm
+	num ^= num << 13;
+	num ^= num >> 17;
+	num ^= num << 5;
+
+	// update state
+	state = num;
+
+	// return random number
+	return num;	
+}
+
+// generate 64-bit pseudo legal numbers
+u64 psrandom_u64() {
+	// define 4 random numbers
+	u64 n1, n2, n3, n4;
+
+	// initialize random numbers
+	n1 = (u64)(psrandom_u32() & 0xFFFF);
+	n2 = (u64)(psrandom_u32() & 0xFFFF);
+	n3 = (u64)(psrandom_u32() & 0xFFFF);
+	n4 = (u64)(psrandom_u32() & 0xFFFF);
+
+	//return random number
+	return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
+}
+
+// generate magic number candidate
+u64 magic_number() {
+	return psrandom_u64() & psrandom_u64() & psrandom_u64();
+}
+
+#pragma endregion
+
 #pragma region Bit Manipulations
 
 #define get_bit(bitboard, square) (bitboard &  (1ULL << square))
@@ -179,6 +220,30 @@ const u64 not_h_file = 9187201950435737471ULL;
  */
 const u64 not_gh_files = 4557430888798830399ULL;
 
+/** Bishop relevant occupancy bit count for every square on board */
+const int bishop_relevant_bits[64] = {
+	6, 5, 5, 5, 5, 5, 5, 6,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 9, 9, 7, 5, 5,
+	5, 5, 7, 7, 7, 7, 5, 5,
+	5, 5, 5, 5, 5, 5, 5, 5,
+	6, 5, 5, 5, 5, 5, 5, 6
+};
+
+/** Rook relevant occupancy bit count for every square on board */
+const int rook_relevant_bits[64] = {
+	12, 11, 11, 11, 11, 11, 11, 12,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	11, 10, 10, 10, 10, 10, 10, 11,
+	12, 11, 11, 11, 11, 11, 11, 12
+};
+
 /** Table containing the bitboards of both colors pawn attacks from each square. */
 u64 pawn_attacks[2][64];
 
@@ -270,6 +335,24 @@ u64 mask_king_attacks(int square) {
 	if (king << 1 & not_a_file)	attacks |= (king << 1);
 
 	return attacks;
+}
+
+/**
+ * Initialize attacks for all leaper pieces (pawns, knights & kings).
+ */
+void init_leapers_attacks() {
+	// loop over all squares
+	for (int square = 0; square < 64; square++) {
+		// initialize pawn attacks
+		pawn_attacks[white][square] = mask_pawn_attacks(white, square);
+		pawn_attacks[black][square] = mask_pawn_attacks(black, square);
+
+		// initialize knight attacks
+		knight_attacks[square] = mask_knight_attacks(square);
+
+		// initialize king attacks
+		king_attacks[square] = mask_king_attacks(square);
+	}
 }
 
 /**
@@ -442,39 +525,21 @@ u64 set_occupancy(int index, int bits_in_mask, u64 attack_mask) {
 	return occupancy;
 }
 
-/**
- * Initialize attacks for all leaper pieces (pawns, knights & kings).
- */
-void init_leapers_attacks() {
-	// loop over all squares
-	for (int square = 0; square < 64; square++) {
-		// initialize pawn attacks
-		pawn_attacks[white][square] = mask_pawn_attacks(white, square);
-		pawn_attacks[black][square] = mask_pawn_attacks(black, square);
-
-		// initialize knight attacks
-		knight_attacks[square] = mask_knight_attacks(square);
-
-		// initialize king attacks
-		king_attacks[square] = mask_king_attacks(square);
-	}
-}
-
 #pragma endregion
+
+// pseudorandom number state
+unsigned int state = 1804289383;
+
 
 // main function
 int main() {
 	// initialize leaper pieces attacks
 	init_leapers_attacks();
 
-	// mask piece attack at given square
-	u64 attack_mask = mask_rook_attacks(a1);
-
-	// init occpuancy
-	for (int index = 0; index < 4096; index++) {
-		print_bitboard(set_occupancy(index, count_bits(attack_mask), attack_mask), "idk");
-		getchar();
-	}
+	print_bitboard((u64)psrandom_u32(), "idk");
+	print_bitboard((u64)psrandom_u32() & 0xFFFF, "idk");
+	print_bitboard(psrandom_u64() & 0xFFFF, "idk");
+	print_bitboard(magic_number(), "pseduo random u64");
 
 	return 0;
 }
