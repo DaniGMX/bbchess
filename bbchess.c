@@ -23,27 +23,56 @@ enum {
 	a1, b1, c1, d1, e1, f1, g1, h1
 };
 
-/*
-"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-"a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-"a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-"a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-"a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
-*/
+const char* square_to_coordinates[] = {
+	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+	"a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+	"a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+	"a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+	"a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+	"a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+	"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
+};
 
 // define colors
 enum { white, black };
 
 #pragma endregion
 
-#pragma region Macros
+#pragma region Bit Manipulations
 
 #define get_bit(bitboard, square) (bitboard &  (1ULL << square))
 #define set_bit(bitboard, square) (bitboard |= (1ULL << square))
 #define pop_bit(bitboard, square) (get_bit(bitboard, square) ? (bitboard ^= (1ULL << square)) : 0)
+
+/**
+ * Counts the number of bits set in a bitboard.
+ * @param bitboard The bitboard to count the bits from.
+ * @return The number of bits set in the bitboard.
+ */
+static inline int count_bits(u64 bitboard) {
+	int count = 0;
+
+	// Continuously shift the bitboard to the right until it is zero
+	while (bitboard) {
+		bitboard &= (bitboard - 1);
+		count++;
+	}
+	return count;
+}
+
+/**
+ * Gets the least significant bit index set in a bitboard.
+ * @param bitboard The bitboard to get the least significant bit index from.
+ * @return The least significant bit index set in the bitboard.
+ */
+static inline int get_lsb_index(u64 bitboard) {
+	if (bitboard) {
+		return count_bits((bitboard & -bitboard) - 1);
+	} else {
+		return -1;
+	}
+}
 
 #pragma endregion
 
@@ -62,6 +91,15 @@ void print_bitboard(u64 bitboard, char* msg) {
 
 	// print decimal value of bitboard
 	printf("- Base 10:\t%020llud\n", bitboard);
+
+	// print the number of bits of the bitboard
+	printf("- Bit count:\t%d\n", count_bits(bitboard));
+
+	// print the LSB index in the bitboard
+	printf("- LSB index:\t%d\n", get_lsb_index(bitboard));
+
+	// print the LSB index in the bitboard
+	printf("- LSB coords:\t%s\n", square_to_coordinates[get_lsb_index(bitboard)]);
 
 	// print bitboard as a board of bits
 	printf("- Board:\t");
@@ -103,7 +141,7 @@ void print_bitboard(u64 bitboard, char* msg) {
 const u64 not_a_file = 18374403900871474942ULL;
 
 /**
- * Bitboard with all bits set except for the A file.
+ * Bitboard with all bits set except for the A and B files.
  * 0 0 1 1 1 1 1 1
  * 0 0 1 1 1 1 1 1
  * 0 0 1 1 1 1 1 1
@@ -377,6 +415,34 @@ u64 real_time_rook_attacks(int square, u64 blocked) {
 }
 
 /**
+ * Calculate a combination of occupancies for a sliding piece at a given square.
+ * @param index To be determined.
+ * @param bits_in_mask To be determined.
+ * @param attack_mask To be determined.
+ * @return To be determined.
+ */
+u64 set_occupancy(int index, int bits_in_mask, u64 attack_mask) {
+	// occupancy mask
+	u64 occupancy = 0ULL;
+
+	// loop over the range of bits within the attack mask
+	for (int count = 0; count < bits_in_mask; count++) {
+		// get LSB index of attack mask
+		int square = get_lsb_index(attack_mask);
+
+		// pop LSB in attack mask
+		pop_bit(attack_mask, square);
+
+		// make sure occupancy is on board
+		if (index & (1 << count))
+			occupancy |= (1ULL << square);
+	}
+
+	// return occupancy map
+	return occupancy;
+}
+
+/**
  * Initialize attacks for all leaper pieces (pawns, knights & kings).
  */
 void init_leapers_attacks() {
@@ -401,13 +467,14 @@ int main() {
 	// initialize leaper pieces attacks
 	init_leapers_attacks();
 
-	// initialize occupancy bitboard
-	u64 block = 0ULL;
-	set_bit(block, d7);
-	set_bit(block, d3);
-	set_bit(block, b4);
-	set_bit(block, g4);
-	print_bitboard(block, "Blocked bitboard");
+	// mask piece attack at given square
+	u64 attack_mask = mask_rook_attacks(a1);
+
+	// init occpuancy
+	for (int index = 0; index < 4096; index++) {
+		print_bitboard(set_occupancy(index, count_bits(attack_mask), attack_mask), "idk");
+		getchar();
+	}
 
 	return 0;
 }
