@@ -269,9 +269,39 @@ u64 mask_bishop_attacks(int square) {
  * @return The bitboard with the rook attacks from the given square.
  */
 u64 mask_rook_attacks(int square) {
-	// bishop bitboard
+	// rook bitboard
 	u64 rook = 0ULL;
 	set_bit(rook, square);
+
+	// rook attacks bitboard
+	u64 attacks = 0ULL;
+
+	// init ranks and files	
+	int r, f;
+
+	// init target rank & files
+	int tr = square / 8;
+	int tf = square % 8;
+
+	// mask relevant rook occupancy bits
+	for (r = tr + 1; r <= 6; r++) attacks |= (1ULL << (r * 8 + tf));
+	for (r = tr - 1; r >= 1; r--) attacks |= (1ULL << (r * 8 + tf));
+	for (f = tf + 1; f <= 6; f++) attacks |= (1ULL << (tr * 8 + f));
+	for (f = tf - 1; f >= 1; f--) attacks |= (1ULL << (tr * 8 + f));
+
+	return attacks;
+}
+
+/**
+ * Calculate bishop attacks in real time, given a blocked bitboard.
+ * @param square The square from which to calculate the real-time bishop attacks from.
+ * @param blocked The bitboard with the blocked squares.
+ * @return The bitboard with the bishop attacks from the given square.
+ */
+u64 real_time_bishop_attacks(int square, u64 blocked) {
+	// bishop bitboard
+	u64 bishop = 0ULL;
+	set_bit(bishop, square);
 
 	// bishop attacks bitboard
 	u64 attacks = 0ULL;
@@ -283,11 +313,65 @@ u64 mask_rook_attacks(int square) {
 	int tr = square / 8;
 	int tf = square % 8;
 
-	// mask relevant bishop occupancy bits
-	for (r = tr + 1; r <= 6; r++) attacks |= (1ULL << (r * 8 + tf));
-	for (r = tr - 1; r >= 1; r--) attacks |= (1ULL << (r * 8 + tf));
-	for (f = tf + 1; f <= 6; f++) attacks |= (1ULL << (tr * 8 + f));
-	for (f = tf - 1; f >= 1; f--) attacks |= (1ULL << (tr * 8 + f));
+	// generate bishop attacks
+	for (r = tr + 1, f = tf + 1; r <= 7 && f <= 7; r++, f++) {
+		attacks |= (1ULL << (r * 8 + f));
+		if ((1ULL << (r * 8 + f)) & blocked) break;
+	}
+	for (r = tr - 1, f = tf + 1; r >= 0 && f <= 7; r--, f++) {
+		attacks |= (1ULL << (r * 8 + f));
+		if ((1ULL << (r * 8 + f)) & blocked) break;
+	}
+	for (r = tr + 1, f = tf - 1; r <= 7 && f >= 0; r++, f--) {
+		attacks |= (1ULL << (r * 8 + f));
+		if ((1ULL << (r * 8 + f)) & blocked) break;
+	}
+	for (r = tr - 1, f = tf - 1; r >= 0 && f >= 0; r--, f--) {
+		attacks |= (1ULL << (r * 8 + f));
+		if ((1ULL << (r * 8 + f)) & blocked) break;
+	}
+
+	return attacks;
+}
+
+/**
+ * Calculate rook attacks in real time, given a blocked bitboard.
+ * @param square The square from which to calculate the real-time rook attacks from.
+ * @param blocked The bitboard with the blocked squares.
+ * @return The bitboard with the rook attacks from the given square.
+ */
+u64 real_time_rook_attacks(int square, u64 blocked) {
+	// rook bitboard
+	u64 rook = 0ULL;
+	set_bit(rook, square);
+
+	// rook attacks bitboard
+	u64 attacks = 0ULL;
+
+	// init ranks and files	
+	int r, f;
+
+	// init target rank & files
+	int tr = square / 8;
+	int tf = square % 8;
+
+	// mask relevant rook occupancy bits
+	for (r = tr + 1; r <= 7; r++) {
+		attacks |= (1ULL << (r * 8 + tf));
+		if ((1ULL << (r * 8 + tf)) & blocked) break;
+	}
+	for (r = tr - 1; r >= 0; r--) {
+		attacks |= (1ULL << (r * 8 + tf));
+		if ((1ULL << (r * 8 + tf)) & blocked) break;
+	}
+	for (f = tf + 1; f <= 7; f++) {
+		attacks |= (1ULL << (tr * 8 + f));
+		if ((1ULL << (tr * 8 + f)) & blocked) break;
+	}
+	for (f = tf - 1; f >= 0; f--) {
+		attacks |= (1ULL << (tr * 8 + f));
+		if ((1ULL << (tr * 8 + f)) & blocked) break;
+	}
 
 	return attacks;
 }
@@ -317,8 +401,13 @@ int main() {
 	// initialize leaper pieces attacks
 	init_leapers_attacks();
 
-	for (int square = 0; square < 64; square++)
-		print_bitboard(mask_rook_attacks(square), "Rook attacks from d4");
+	// initialize occupancy bitboard
+	u64 block = 0ULL;
+	set_bit(block, d7);
+	set_bit(block, d3);
+	set_bit(block, b4);
+	set_bit(block, g4);
+	print_bitboard(block, "Blocked bitboard");
 
 	return 0;
 }
