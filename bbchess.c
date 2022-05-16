@@ -2,6 +2,7 @@
 // system headers
 #include <stdio.h>
 #include <time.h>
+#include <memory.h>
 
 #pragma region Type Definitions
 
@@ -23,6 +24,7 @@ enum {
 	a1, b1, c1, d1, e1, f1, g1, h1
 };
 
+// define square coordinates array to access by square index
 const char* square_to_coordinates[] = {
 	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
 	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
@@ -34,8 +36,11 @@ const char* square_to_coordinates[] = {
 	"a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 };
 
-// define colors
+// define colors enumerations
 enum { white, black };
+
+// define sliding pieces enumerations
+enum { rook, bishop };
 
 #pragma endregion
 
@@ -81,20 +86,6 @@ u64 psrandom_u64() {
 	//return random number
 	return n1 | (n2 << 16) | (n3 << 32) | (n4 << 48);
 }
-
-/**
- * Generates a magic number candidate.
- * @returns A magic number candidate.
- */
-u64 magic_number() {
-	return psrandom_u64() & psrandom_u64() & psrandom_u64();
-}
-
-#pragma endregion
-
-#pragma region Magic Numbers
-
-
 
 #pragma endregion
 
@@ -545,15 +536,265 @@ u64 set_occupancy(int index, int bits_in_mask, u64 attack_mask) {
 
 #pragma endregion
 
-// main function
-int main() {
-	// initialize leaper pieces attacks
+#pragma region Magic Numbers
+
+/** Pre-calculated rook magic numbers */
+u64 rook_magic_numbers[64] = {
+	0xa080041440042080ULL,
+	0xa840200410004001ULL,
+	0xc800c1000200081ULL,
+	0x100081001000420ULL,
+	0x200020010080420ULL,
+	0x3001c0002010008ULL,
+	0x8480008002000100ULL,
+	0x2080088004402900ULL,
+	0x800098204000ULL,
+	0x2024401000200040ULL,
+	0x100802000801000ULL,
+	0x120800800801000ULL,
+	0x208808088000400ULL,
+	0x2802200800400ULL,
+	0x2200800100020080ULL,
+	0x801000060821100ULL,
+	0x80044006422000ULL,
+	0x100808020004000ULL,
+	0x12108a0010204200ULL,
+	0x140848010000802ULL,
+	0x481828014002800ULL,
+	0x8094004002004100ULL,
+	0x4010040010010802ULL,
+	0x20008806104ULL,
+	0x100400080208000ULL,
+	0x2040002120081000ULL,
+	0x21200680100081ULL,
+	0x20100080080080ULL,
+	0x2000a00200410ULL,
+	0x20080800400ULL,
+	0x80088400100102ULL,
+	0x80004600042881ULL,
+	0x4040008040800020ULL,
+	0x440003000200801ULL,
+	0x4200011004500ULL,
+	0x188020010100100ULL,
+	0x14800401802800ULL,
+	0x2080040080800200ULL,
+	0x124080204001001ULL,
+	0x200046502000484ULL,
+	0x480400080088020ULL,
+	0x1000422010034000ULL,
+	0x30200100110040ULL,
+	0x100021010009ULL,
+	0x2002080100110004ULL,
+	0x202008004008002ULL,
+	0x20020004010100ULL,
+	0x2048440040820001ULL,
+	0x101002200408200ULL,
+	0x40802000401080ULL,
+	0x4008142004410100ULL,
+	0x2060820c0120200ULL,
+	0x1001004080100ULL,
+	0x20c020080040080ULL,
+	0x2935610830022400ULL,
+	0x44440041009200ULL,
+	0x280001040802101ULL,
+	0x2100190040002085ULL,
+	0x80c0084100102001ULL,
+	0x4024081001000421ULL,
+	0x20030a0244872ULL,
+	0x12001008414402ULL,
+	0x2006104900a0804ULL,
+	0x1004081002402ULL
+};
+
+/** Pre-calculated bishop magic numbers */
+u64 bishop_magic_numbers[64] = {
+	0x40040822862081ULL,
+	0x40810a4108000ULL,
+	0x2008008400920040ULL,
+	0x61050104000008ULL,
+	0x8282021010016100ULL,
+	0x41008210400a0001ULL,
+	0x3004202104050c0ULL,
+	0x22010108410402ULL,
+	0x60400862888605ULL,
+	0x6311401040228ULL,
+	0x80801082000ULL,
+	0x802a082080240100ULL,
+	0x1860061210016800ULL,
+	0x401016010a810ULL,
+	0x1000060545201005ULL,
+	0x21000c2098280819ULL,
+	0x2020004242020200ULL,
+	0x4102100490040101ULL,
+	0x114012208001500ULL,
+	0x108000682004460ULL,
+	0x7809000490401000ULL,
+	0x420b001601052912ULL,
+	0x408c8206100300ULL,
+	0x2231001041180110ULL,
+	0x8010102008a02100ULL,
+	0x204201004080084ULL,
+	0x410500058008811ULL,
+	0x480a040008010820ULL,
+	0x2194082044002002ULL,
+	0x2008a20001004200ULL,
+	0x40908041041004ULL,
+	0x881002200540404ULL,
+	0x4001082002082101ULL,
+	0x8110408880880ULL,
+	0x8000404040080200ULL,
+	0x200020082180080ULL,
+	0x1184440400114100ULL,
+	0xc220008020110412ULL,
+	0x4088084040090100ULL,
+	0x8822104100121080ULL,
+	0x100111884008200aULL,
+	0x2844040288820200ULL,
+	0x90901088003010ULL,
+	0x1000a218000400ULL,
+	0x1102010420204ULL,
+	0x8414a3483000200ULL,
+	0x6410849901420400ULL,
+	0x201080200901040ULL,
+	0x204880808050002ULL,
+	0x1001008201210000ULL,
+	0x16a6300a890040aULL,
+	0x8049000441108600ULL,
+	0x2212002060410044ULL,
+	0x100086308020020ULL,
+	0x484241408020421ULL,
+	0x105084028429c085ULL,
+	0x4282480801080cULL,
+	0x81c098488088240ULL,
+	0x1400000090480820ULL,
+	0x4444000030208810ULL,
+	0x1020142010820200ULL,
+	0x2234802004018200ULL,
+	0xc2040450820a00ULL,
+	0x2101021090020ULL
+};
+
+/**
+ * Generates a magic number candidate.
+ * @returns A magic number candidate.
+ */
+u64 generate_magic_number() {
+	return psrandom_u64() & psrandom_u64() & psrandom_u64();
+}
+
+/** 
+ * Find an appropriate magic number for either a bishop or a rook, given its square
+ * and the relevant bits of the occupancy bitboard.
+ * @param square The square of the piece.
+ * @param relevant_bits The relevant bits of the occupancy bitboard.
+ * @param bishop Whether the piece is a bishop or a rook. On usage, use the macro value bishop or rook.
+ * @returns The generated magic number.
+ */
+u64 find_magic_number(int square, int relevant_bits, int bishop) {
+	// initialize occupancies
+	u64 occupancies[4096];
+
+	// initialize attack tables
+	u64 attacks[4096];
+
+	// initialize used attacks
+	u64 used_attacks[4096];
+
+	// initialize attack mask for current piece
+	u64 attack_mask = bishop ? mask_bishop_attacks(square) : mask_rook_attacks(square);
+
+	// init occupancy indices
+	int occupancy_indices = 1 << relevant_bits;
+
+	// loop over occupancy indices
+	for (int index = 0; index < occupancy_indices; index++) {
+		// initialize occupancies
+		occupancies[index] = set_occupancy(index, relevant_bits, attack_mask);
+
+		// initialize attacks
+		attacks[index] = bishop ? real_time_bishop_attacks(square, occupancies[index]) : 
+									real_time_rook_attacks(square, occupancies[index]);
+	}
+
+	// test magic numbers
+	for (int random_count = 0; random_count < 100000000; random_count++) {
+		// generate magic number candidate
+		u64 magic_number = generate_magic_number();
+
+		// skip inappropriate magic numbers
+		if (count_bits((attack_mask * magic_number) & 0xFF00000000000000) < 6) continue;
+
+		// init used attacks
+		memset(used_attacks, 0ULL, sizeof(used_attacks));
+
+		// init index and fail flag
+		int index, fail;
+
+		// text magic index loop
+        for (index = 0, fail = 0; !fail && index < occupancy_indices; index++)
+        {
+            // init magic index
+            int magic_index = (int)((occupancies[index] * magic_number) >> (64 - relevant_bits));
+            
+            // if magic index works
+            if (used_attacks[magic_index] == 0ULL)
+                // init used attacks
+                used_attacks[magic_index] = attacks[index];
+            
+            // otherwise
+            else if (used_attacks[magic_index] != attacks[index])
+                // magic index doesn't work
+                fail = 1;
+        }
+
+		// if magic number works return it
+		if (!fail) return magic_number;
+	}
+
+	printf("MAGIC NUMBER NOT FOUND!\n");
+	return 0ULL;
+}
+
+/** 
+ * Initialize magic numbers for bishops and rooks.
+ */
+void init_magic_numbers() {
+	for (int square = 0; square < 64; square++) {
+		// init bishop magic numbers
+		bishop_magic_numbers[square] = find_magic_number(square, bishop_relevant_bits[square], bishop);
+	}
+	for (int square = 0; square < 64; square++) {
+		// init rook magic numbers
+		rook_magic_numbers[square] = find_magic_number(square, rook_relevant_bits[square], rook);
+	}
+}
+
+#pragma endregion
+
+#pragma region Initialize all
+
+/**
+ * Itialize all necessary data structures.
+ */
+ */
+void init_all() {
+	// leapers attack initialization
 	init_leapers_attacks();
 
-	print_bitboard((u64)psrandom_u32(), "idk");
-	print_bitboard((u64)psrandom_u32() & 0xFFFF, "idk");
-	print_bitboard(psrandom_u64() & 0xFFFF, "idk");
-	print_bitboard(magic_number(), "pseduo random u64");
+	/// NOTE: this initialization was made in order to get the values for the magic numbers,
+	/// it is nor needed anymore as now the magic numbers are precomputed and hardcoded
+	/// for intantaneous initialization of the magic numbers.
+
+	// magic number initialization
+	// init_magic_numbers();
+}
+
+#pragma endregion
+
+// main function
+int main() {
+	// init all
+	init_all();
 
 	return 0;
 }
