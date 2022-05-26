@@ -21,10 +21,13 @@ enum {
 	a4, b4, c4, d4, e4, f4, g4, h4,
 	a3, b3, c3, d3, e3, f3, g3, h3,
 	a2, b2, c2, d2, e2, f2, g2, h2,
-	a1, b1, c1, d1, e1, f1, g1, h1
+	a1, b1, c1, d1, e1, f1, g1, h1, none
 };
 
-// define square coordinates array to access by square index
+// castling enumerations
+enum { wk = 1, wq = 2, bk = 4, bq = 8 };
+
+/** Square coordinates array to access by square index */
 const char* square_to_coordinates[] = {
 	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
 	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
@@ -37,10 +40,35 @@ const char* square_to_coordinates[] = {
 };
 
 // define colors enumerations
-enum { white, black };
+enum { white, black, both };
 
 // define sliding pieces enumerations
 enum { rook, bishop };
+
+// encode pieces
+enum { P, N, B, R, Q, K, p, n, b, r, q, k };
+
+// ASCII pieces
+char ascii_pieces[12] = "PNBRQKpnbrqk";
+
+// Unicode pieces
+char* unicode_pieces[12] = { "♙", "♘", "♗", "♖", "♕", "♔", "♟", "♞", "♝", "♜", "♛", "♚" };
+
+// convert ASCII character pieces to encoded constants
+int char_pieces[] = {
+	['P'] = P,
+	['N'] = N,
+	['B'] = B,
+	['R'] = R,
+	['Q'] = Q,
+	['K'] = K,
+	['p'] = p,
+	['n'] = n,
+	['b'] = b,
+	['r'] = r,
+	['q'] = q,
+	['k'] = k
+};
 
 #pragma endregion
 
@@ -170,7 +198,7 @@ void print_bitboard(u64 bitboard, char* msg) {
 		printf("\n\t\t");
 	}
 
-	printf("   A B C D E F G H\n");
+	printf("\n\t\t   A B C D E F G H\n");
 }
 
 #pragma endregion
@@ -873,12 +901,136 @@ void init_all() {
 
 #pragma endregion
 
+#pragma region Chess Board representation
+
+// Piece bitboards
+u64 bitboards[12];
+
+// Occupancy bitboards
+u64 occupancies[3];
+
+// Side to move
+int side = black;
+
+// En-passant square
+int enpassant = none;
+
+// Castling right
+int castle = wk + wq + bk + bq;
+
+void print_board() {
+ 	printf("\n");
+
+	// loop over rank and files
+	for (int rank = 0; rank < 8; rank++) {
+		for (int file = 0; file < 8; file++) {
+			// init square we are at
+			int square = rank * 8 + file;
+
+			// print ranks
+			if (!file) 
+				printf("%d ", 8 - rank);
+
+			//define piece
+			int piece = -1;
+
+			// loop over all piece bitboards
+			for (int bb = P; bb <= k; bb++) {
+				if (get_bit(bitboards[bb], square))
+					piece = bb;
+			}
+
+			#ifdef WIN64
+				printf(" %c", (piece == -1) ? '.' : ascii_pieces[piece]);
+			#else
+				printf(" %s", (piece == -1) ? "." : unicode_pieces[piece]);
+			#endif
+		}
+		printf("\n");
+	}
+	printf("\n   A B C D E F G H\n");
+
+	// print side to move
+	printf("> %s to move.\n", (!side) ? "White" : "Black");
+
+	// print en passant
+	if (enpassant != none) 
+		printf("> En passant open at %s\n", square_to_coordinates[enpassant]);
+
+	// print castling rights
+	printf("> Available castlings: %c%c%c%c\n", 
+		(castle && wk) ? 'K' : '-',
+		(castle && wq) ? 'Q' : '-',
+		(castle && bk) ? 'k' : '-',
+		(castle && bq) ? 'q' : '-'
+	);
+}
+
+#pragma endregion
+
 // main function
 int main() {
 	// init all
 	init_all();
 
+	// set white pawns
+	set_bit(bitboards[P], a2);
+	set_bit(bitboards[P], b2);
+	set_bit(bitboards[P], c2);
+	set_bit(bitboards[P], d2);
+	set_bit(bitboards[P], e2);
+	set_bit(bitboards[P], f2);
+	set_bit(bitboards[P], g2);
+	set_bit(bitboards[P], h2);
 
-	
+	// set white rooks
+	set_bit(bitboards[R], a1);
+	set_bit(bitboards[R], h1);
+
+	// set white knights
+	set_bit(bitboards[N], b1);
+	set_bit(bitboards[N], g1);
+
+	// set white bishops
+	set_bit(bitboards[B], c1);
+	set_bit(bitboards[B], f1);
+
+	// set white queen
+	set_bit(bitboards[Q], d1);
+
+	// set white king
+	set_bit(bitboards[K], e1);
+
+	// set black pawns
+	set_bit(bitboards[p], a7);
+	set_bit(bitboards[p], b7);
+	set_bit(bitboards[p], c7);
+	set_bit(bitboards[p], d7);
+	set_bit(bitboards[p], e7);
+	set_bit(bitboards[p], f7);
+	set_bit(bitboards[p], g7);
+	set_bit(bitboards[p], h7);
+
+	// set black rooks
+	set_bit(bitboards[r], a8);
+	set_bit(bitboards[r], h8);
+
+	// set black knights
+	set_bit(bitboards[n], b8);
+	set_bit(bitboards[n], g8);
+
+	// set black bishops
+	set_bit(bitboards[b], c8);
+	set_bit(bitboards[b], f8);
+
+	// set black queen
+	set_bit(bitboards[q], d8);
+
+	// set black king
+	set_bit(bitboards[k], e8);
+
+	// print chessboard
+	print_board();
+
 	return 0;
 }

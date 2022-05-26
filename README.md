@@ -11,6 +11,7 @@ Here is a list with all the features the engine should support when finished:
     * [x] On-the-go calculations for sliding pieces.
     * [x] Pseudo-random number generation.
     * [x] Magic bitboards for sliding pieces.
+  * [ ] Board representation in ASCII/Unicode characters with all game information.
   * [ ] Encoding moves as integers.
   * [ ] Copy/make approach for making moves.
   * [ ] Negamax search with alpha-beta pruning.
