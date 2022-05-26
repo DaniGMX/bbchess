@@ -11,6 +11,9 @@ Here is a list with all the features the engine should support when finished:
     * [x] On-the-go calculations for sliding pieces.
     * [x] Pseudo-random number generation.
     * [x] Magic bitboards for sliding pieces.
+    * [x] Attacks for bishop
+    * [x] Attacks for rook
+    * [x] Attacks fot queen
   * [x] Board representation in ASCII/Unicode characters with all game information.
   * [x] FEN parsing
   * [ ] Encoding moves as integers.
