@@ -610,7 +610,7 @@ u64 mask_rook_attacks(int square) {
  * @param blocked The bitboard with the blocked squares.
  * @return The bitboard with the bishop attacks from the given square.
  */
-u64 real_time_bishop_attacks(int square, u64 blocked) {
+u64 bishop_attacks_on_the_go(int square, u64 blocked) {
 	// bishop bitboard
 	u64 bishop = 0ULL;
 	set_bit(bishop, square);
@@ -652,7 +652,7 @@ u64 real_time_bishop_attacks(int square, u64 blocked) {
  * @param blocked The bitboard with the blocked squares.
  * @return The bitboard with the rook attacks from the given square.
  */
-u64 real_time_rook_attacks(int square, u64 blocked) {
+u64 rook_attacks_on_the_go(int square, u64 blocked) {
 	// rook bitboard
 	u64 rook = 0ULL;
 	set_bit(rook, square);
@@ -747,9 +747,9 @@ void init_sliders_attacks(int bishop) {
 			
 			if (bishop) {
 				// init bishop attacks
-				bishop_attacks[square][magic_index] = real_time_bishop_attacks(square, occupancy);
+				bishop_attacks[square][magic_index] = bishop_attacks_on_the_go(square, occupancy);
 			} else {
-				rook_attacks[square][magic_index] = real_time_rook_attacks(square, occupancy);
+				rook_attacks[square][magic_index] = rook_attacks_on_the_go(square, occupancy);
 			}
 		}
 	}
@@ -780,6 +780,17 @@ static inline u64 get_rook_attacks(int square, u64 occupancy) {
 
 	return rook_attacks[square][occupancy];
 }
+
+/** 
+ * Get queen attacks for a given square. This function must be inline for better performance 
+ * because it will be called many times during move generation.
+ */
+static inline u64 get_queen_attacks(int square, u64 occupancy) {
+	// initialize result attacks bitboard
+	return (get_bishop_attacks(square, occupancy) | get_rook_attacks(square, occupancy));
+}
+
+
 
 // get rook attacks
 
@@ -825,8 +836,8 @@ u64 find_magic_number(int square, int relevant_bits, int bishop) {
 		occupancies[index] = set_occupancy(index, relevant_bits, attack_mask);
 
 		// initialize attacks
-		attacks[index] = bishop ? real_time_bishop_attacks(square, occupancies[index]) : 
-									real_time_rook_attacks(square, occupancies[index]);
+		attacks[index] = bishop ? bishop_attacks_on_the_go(square, occupancies[index]) : 
+									rook_attacks_on_the_go(square, occupancies[index]);
 	}
 
 	// test magic numbers
@@ -1115,11 +1126,15 @@ int main() {
 	// init all
 	init_all();
 
-	// parse fen
-	parse_fen(fen_cmk_position);
+	// init occupancy bitboard
+	u64 occ = 0ULL;
 
-	// print board
-	print_board();
+	set_bit(occ, b6);
+	set_bit(occ, d6);
+	set_bit(occ, f4);
+
+	// get queen attacks
+	print_bitboard(get_queen_attacks(d4, occ), "Queen attacks on d4");
 
 	return 0;
 } 
