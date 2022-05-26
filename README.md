@@ -12,6 +12,7 @@ Here is a list with all the features the engine should support when finished:
     * [x] Pseudo-random number generation.
     * [x] Magic bitboards for sliding pieces.
   * [x] Board representation in ASCII/Unicode characters with all game information.
+  * [x] FEN parsing
   * [ ] Encoding moves as integers.
   * [ ] Copy/make approach for making moves.
   * [ ] Negamax search with alpha-beta pruning.
