@@ -888,12 +888,17 @@ int main() {
 	set_bit(occupancy, e2);
 	set_bit(occupancy, e7);
 
+	u64 occ_whites = 0ULL;
+	set_bit(occ_whites, c3);
+
 	print_bitboard(occupancy, "Occupancy bitboard.");
 
 	// print bishop and rook attacks
-	print_bitboard(get_bishop_attacks(d4, occupancy), "Bishop attacks in d4 square with previous occupancy.");
+	print_bitboard(get_bishop_attacks(d4, occupancy | occ_whites), "Bishop attacks in d4 square with previous occupancy.");
 	print_bitboard(get_bishop_attacks(e4, occupancy), "Bishop attacks in e4 square with previous occupancy.");
 	print_bitboard(get_rook_attacks(d4, occupancy), "Rook attacks in d4 square with previous occupancy.");
 	print_bitboard(get_rook_attacks(e5, occupancy), "Rook attacks in e5 square with previous occupancy.");
+
+	print_bitboard(king_attacks[h4], "Rook attacks in e5 square with previous occupancy.");
 	return 0;
 }

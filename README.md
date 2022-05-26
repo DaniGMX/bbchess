@@ -7,10 +7,10 @@ I will  be following all the videos and tutorials step by step and creating C-st
 Here is a list with all the features the engine should support when finished:
   * [x] Bitboard representation.
   * [x] Pre-calculated attacks for leaping pieces (pawns, knights and kings)
-  * [ ] Pre-calculated attacks for sliding pieces (bishops, rooks and queens).
+  * [x] Pre-calculated attacks for sliding pieces (bishops, rooks and queens).
     * [x] On-the-go calculations for sliding pieces.
     * [x] Pseudo-random number generation.
-    * [ ] Magic bitboards for sliding pieces.
+    * [x] Magic bitboards for sliding pieces.
   * [ ] Encoding moves as integers.
   * [ ] Copy/make approach for making moves.
   * [ ] Negamax search with alpha-beta pruning.
