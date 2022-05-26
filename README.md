@@ -20,6 +20,13 @@ Here is a list with all the features the engine should support when finished:
   * [ ] Material/position/pawns/mobility/king safety evaluation.
   * [ ] UCI protocol.
 
+# Run the engine
+In order to run the program, just run this command on the root folder of the project:
+
+```
+make debug && ./bbchess
+```
+
 # Sources
 * [The playlist][1] from Code Monkey in Chess Programming series on YouTube.
 * Bill Jordan. _How to Write a Bitboard Chess Engine: How Chess Programs Work_, Kindle Edition, Jan 20th 2020.

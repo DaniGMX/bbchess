@@ -91,9 +91,9 @@ u64 psrandom_u64() {
 
 #pragma region Bit Manipulations
 
-#define get_bit(bitboard, square) (bitboard &  (1ULL << square))
-#define set_bit(bitboard, square) (bitboard |= (1ULL << square))
-#define pop_bit(bitboard, square) (get_bit(bitboard, square) ? (bitboard ^= (1ULL << square)) : 0)
+#define set_bit(bitboard, square) ((bitboard) |= (1ULL << (square)))
+#define get_bit(bitboard, square) ((bitboard) & (1ULL << (square)))
+#define pop_bit(bitboard, square) ((bitboard) &= ~(1ULL << (square))) // old -> (get_bit(bitboard, square) ? (bitboard ^= (1ULL << square)) : 0)
 
 /**
  * Counts the number of bits set in a bitboard.
@@ -878,27 +878,7 @@ int main() {
 	// init all
 	init_all();
 
-	// define test bitboard
-	u64 occupancy = 0ULL;
-	set_bit(occupancy, c5);
-	set_bit(occupancy, f2);
-	set_bit(occupancy, g7);
-	set_bit(occupancy, b2);
-	set_bit(occupancy, g5);
-	set_bit(occupancy, e2);
-	set_bit(occupancy, e7);
 
-	u64 occ_whites = 0ULL;
-	set_bit(occ_whites, c3);
-
-	print_bitboard(occupancy, "Occupancy bitboard.");
-
-	// print bishop and rook attacks
-	print_bitboard(get_bishop_attacks(d4, occupancy | occ_whites), "Bishop attacks in d4 square with previous occupancy.");
-	print_bitboard(get_bishop_attacks(e4, occupancy), "Bishop attacks in e4 square with previous occupancy.");
-	print_bitboard(get_rook_attacks(d4, occupancy), "Rook attacks in d4 square with previous occupancy.");
-	print_bitboard(get_rook_attacks(e5, occupancy), "Rook attacks in e5 square with previous occupancy.");
-
-	print_bitboard(king_attacks[h4], "Rook attacks in e5 square with previous occupancy.");
+	
 	return 0;
 }
