@@ -167,27 +167,8 @@ static inline int get_lsb_index(u64 bitboard) {
  * @param bitboard The bitboard to represent.
  * @param msg Description of the bitboard to print.
  */
-void print_bitboard(u64 bitboard, char* msg) {
-	printf("\n=====[ Printing Bitboard ]=====\n");
-	// print description of bitboard
-	if (msg)
-		printf("- Description:\t%s\n", msg);
-
-	// print decimal value of bitboard
-	printf("- Base 10:\t%020llud\n", bitboard);
-
-	// print the number of bits of the bitboard
-	printf("- Bit count:\t%d\n", count_bits(bitboard));
-
-	// print the LSB index in the bitboard
-	printf("- LSB index:\t%d\n", get_lsb_index(bitboard));
-
-	// print the LSB index in the bitboard
-	printf("- LSB coords:\t%s\n", square_to_coordinates[get_lsb_index(bitboard)]);
-
-	// print bitboard as a board of bits
-	printf("- Board:\t");
-
+void print_bitboard(u64 bitboard) {
+	printf("\n     - Bitboard - \n\n");
 	// loop over rank and files
 	for (int rank = 0; rank < 8; rank++) {
 		for (int file = 0; file < 8; file++) {
@@ -195,21 +176,34 @@ void print_bitboard(u64 bitboard, char* msg) {
 			int square = rank * 8 + file;
 			
 			if (!file)
-				printf("%d ", 8 - rank);
+				printf(" %d ", 8 - rank);
 
 			// print bit state (either 1 or 0)
 			printf(" %d", get_bit(bitboard, square) ? 1 : 0);
 		}
 		// print new line
-		printf("\n\t\t");
+		printf("\n");
 	}
 
-	printf("\n\t\t   A B C D E F G H\n");
+	printf("\n    A B C D E F G H\n");
+
+		// print decimal value of bitboard
+	printf("\n > Base 10:\t%020llud\n", bitboard);
+
+	// print the number of bits of the bitboard
+	printf(" > Bit count:\t%d\n", count_bits(bitboard));
+
+	// print the LSB index in the bitboard
+	printf(" > LSB index:\t%d\n", get_lsb_index(bitboard));
+
+	// print the LSB index in the bitboard
+	printf(" > LSB coords:\t%s\n", square_to_coordinates[get_lsb_index(bitboard)]);
+
 }
 
 #pragma endregion
 
-#pragma region Attack Precalculations
+#pragma region Attacks
 
 /**
  * Bitboard with all bits set except for the A file.
@@ -718,6 +712,7 @@ u64 set_occupancy(int index, int bits_in_mask, u64 attack_mask) {
 
 /**
  * Initialize the sliding piece attacks.
+ * @param bishop Whether we are calculating the slider attacks for the bishop or not
  */
 void init_sliders_attacks(int bishop) {
 	// loop over all squares
@@ -758,6 +753,9 @@ void init_sliders_attacks(int bishop) {
 /** 
  * Get bishop attacks for a given square. This function must be inline for better performance 
  * because it will be called many times during move generation.
+ * @param square The square to get the bishop attacks from.
+ * @param occupancy The occupancy of the board.
+ * @return The bishop attacks for the given square.
  */
 static inline u64 get_bishop_attacks(int square, u64 occupancy) {
 	// get bishop attacks assuming current board occupancy
@@ -771,6 +769,9 @@ static inline u64 get_bishop_attacks(int square, u64 occupancy) {
 /** 
  * Get rook attacks for a given square. This function must be inline for better performance 
  * because it will be called many times during move generation.
+ * @param square The square to get the rook attacks for.
+ * @param occupancy The occupancy of the board.
+ * @return The rook attacks for the given square.
  */
 static inline u64 get_rook_attacks(int square, u64 occupancy) {
 	// get rook attacks assuming current board occupancy
@@ -784,15 +785,40 @@ static inline u64 get_rook_attacks(int square, u64 occupancy) {
 /** 
  * Get queen attacks for a given square. This function must be inline for better performance 
  * because it will be called many times during move generation.
+ * @param square The square to get the queen attacks for.
+ * @param occupancy The occupancy of the board.
+ * @return The queen attacks for the given square.
  */
 static inline u64 get_queen_attacks(int square, u64 occupancy) {
 	// initialize result attacks bitboard
 	return (get_bishop_attacks(square, occupancy) | get_rook_attacks(square, occupancy));
 }
 
+/** 
+ * Determines whether the given square is being attacked by any piece of the opposite side
+ * @param square The square to check.
+ * @param side The side to check for.
+ * @return Whether the given square is being attacked by any piece of the opposite side.
+ */
+static inline int is_square_attacked(int square, int side) {
+	// by default return false
+	return 0;
+}
 
+void print_attacked_squares() {
+	printf("\n     - Attacks -\n\n");
+	for (int rank = 0; rank < 8; rank++) {
+		for (int file = 0; file < 8; file++) {
+			int square = rank * 8 + file;
+			if (!file)
+				printf(" %d ", 8 - rank);
+			printf(" %d", is_square_attacked(square, white) ? 1 : 0);
+		}
+		printf("\n");
+	}
 
-// get rook attacks
+	printf("\n    A B C D E F G H\n");
+}
 
 #pragma endregion
 
@@ -895,7 +921,7 @@ void init_magic_numbers() {
 
 #pragma endregion
 
-#pragma region Initialize all
+#pragma region Initialize All
 
 /**
  * Itialize all necessary data structures.
@@ -953,7 +979,7 @@ int castling_rights;
 
 /** Print the chess board */
 void print_board() {
- 	printf("\n");
+ 	printf("\n   - Chess Board - \n\n");
 
 	// loop over rank and files
 	for (int rank = 0; rank < 8; rank++) {
@@ -1126,15 +1152,10 @@ int main() {
 	// init all
 	init_all();
 
-	// init occupancy bitboard
-	u64 occ = 0ULL;
+	parse_fen(fen_starting_position);
+	print_board(); 
+	print_bitboard(0ULL);
 
-	set_bit(occ, b6);
-	set_bit(occ, d6);
-	set_bit(occ, f4);
-
-	// get queen attacks
-	print_bitboard(get_queen_attacks(d4, occ), "Queen attacks on d4");
-
+	print_attacked_squares();
 	return 0;
 } 
