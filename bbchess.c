@@ -1138,6 +1138,33 @@ static inline void generate_moves() {
 					pop_bit(bitboard, source_square);
 				}
 			}
+
+			// castling moves
+			if (piece == K) {
+				// kingside castling is avalable
+				if (castling_rights & wk) {
+					// check whether squares between king and rook are empty
+					if (!get_bit(occupancies[both], f1) && !get_bit(occupancies[both], g1)) {
+						// make sure king and F1 square are not under attack
+						if (!is_square_attacked(e1, black) && !is_square_attacked(f1, black)) {
+							// castling move
+							printf("white kingside castle: O-O (e1g1)\n");
+						}
+					}
+				}
+
+				// queenside castling is available
+				if (castling_rights & wq) {
+					// check whether squares between king and queen's rook are empty
+					if (!get_bit(occupancies[both], d1) && !get_bit(occupancies[both], c1) && !get_bit(occupancies[both], b1)) {
+						// make sure king and D1 square are not under attack
+						if (!is_square_attacked(e1, black) && !is_square_attacked(d1, black)) {
+							// castling move
+							printf("white queenside castle: O-O-O (e1c1)\n");
+						}
+					}
+				}
+			}
 		}
 		// generate black panws & black king castling moves
 		else {
@@ -1210,6 +1237,33 @@ static inline void generate_moves() {
 					}
 					// pop lsb from piece bitboard copy
 					pop_bit(bitboard, source_square);
+				}
+			}
+
+			// castling moves
+			if (piece == k) {
+				// kingside castling is avalable
+				if (castling_rights & bk) {
+					// check whether squares between king and king's rook are empty
+					if (!get_bit(occupancies[both], f8) && !get_bit(occupancies[both], g8)) {
+						// make sure king and F8 square are not under attack
+						if (!is_square_attacked(e8, white) && !is_square_attacked(f8, white)) {
+							// castling move
+							printf("black kingside castle: O-O (e8g8)\n");
+						}
+					}
+				}
+
+				// queenside castling is available
+				if (castling_rights & bq) {
+					// check whether squares between king and queen's rook are empty
+					if (!get_bit(occupancies[both], d8) && !get_bit(occupancies[both], c8) && !get_bit(occupancies[both], b8)) {
+						// make sure king and D8 square are not under attack
+						if (!is_square_attacked(e8, white) && !is_square_attacked(d8, white)) {
+							// castling move
+							printf("black queenside castle: O-O-O (e8c8)\n");
+						}
+					}
 				}
 			}
 		}
@@ -1356,7 +1410,7 @@ int main() {
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPpP/R3K2R b KQkq a3 0 1");
+	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
 	print_board();
 
