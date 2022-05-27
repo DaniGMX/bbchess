@@ -23,7 +23,7 @@ Here is a list with all the features the engine should support when finished:
       * [x] Double pawn pushes.
     * [x] Pawn captures
     * [x] Pawn en-passant captures
-    * [ ] Caslting moves
+    * [x] Castling moves
     * [ ] Knight move
     * [ ] Bishop moves
     * [ ] Rook moves
