@@ -1053,6 +1053,41 @@ void print_attacked_squares(int side) {
 
 #pragma region Move Generation
 
+/* Move encoding
+	Binary move representation											Hexadecimal constants
+
+	0000 0000 0000 0000 0011 1111 	source square			6 bits		0x00003F
+	0000 0000 0000 1111 1100 0000 	target square			6 bits		0x000FC0
+	0000 0000 1111 0000 0000 0000 	piece					4 bits		0x00F000
+	0000 1111 0000 0000 0000 0000 	promoted piece			4 bits		0x0F0000
+	0001 0000 0000 0000 0000 0000 	capture flag			1 bit		0x100000
+	0010 0000 0000 0000 0000 0000 	double pawn push flag	1 bit		0x200000
+	0100 0000 0000 0000 0000 0000 	enpassant flag			1 bit		0x400000
+	1000 0000 0000 0000 0000 0000 	castling flag			1 bit		0x800000
+
+*/
+
+// encode move macro
+#define encode_move(source, target, piece, promoted, capture, double_pawn, enpassant, castle) \
+	(source) | 				\
+	(target << 6) | 		\
+	(piece << 12) | 		\
+	(promoted << 16) | 		\
+	(capture << 20) | 		\
+	(double_pawn << 21) |	\
+	(enpassant << 22) |		\
+	(castle << 23)
+
+#define decode_move_source_square(move) 		((move) & 0x3F)
+#define decode_move_target_square(move) 		(((move) & 0xFC0) >> 6)
+#define decode_move_piece(move) 				(((move) & 0xF000) >> 12)
+#define decode_move_promoted_piece(move) 		(((move) & 0xF0000) >> 16)
+#define decode_move_capture(move) 				(((move) & 0x100000) >> 20)
+#define decode_move_double_pawn_push(move) 		(((move) & 0x200000) >> 21)
+#define decode_move_enpassant(move) 			(((move) & 0x400000) >> 22)
+#define decode_move_castle(move) 				(((move) & 0x800000) >> 23)
+
+
 /**
  * Generate all pseudo legal moves for the given side.
  */
@@ -1558,10 +1593,11 @@ int main() {
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	// parse_fen(fen_tricky_position);
 
-	print_board();
+	// print_board();
 
-	generate_moves();
+
+	// generate_moves();
 	return 0;
 } 
