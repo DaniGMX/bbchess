@@ -6,29 +6,29 @@ I will  be following all the videos and tutorials step by step and creating C-st
 # Features
 Here is a list with all the features the engine should support when finished:
   * [x] Bitboard representation.
-  * [x] Pre-calculated attacks for leaping pieces (pawns, knights and kings)
+  * [x] Pre-calculated attacks for leaping pieces (pawns, knights and kings).
   * [x] Pre-calculated attacks for sliding pieces (bishops, rooks and queens).
     * [x] On-the-go calculations for sliding pieces.
     * [x] Pseudo-random number generation.
     * [x] Magic bitboards for sliding pieces.
-    * [x] Attacks for bishop
-    * [x] Attacks for rook
-    * [x] Attacks fot queen
+    * [x] Attacks for bishop.
+    * [x] Attacks for rook.
+    * [x] Attacks fot queen.
   * [x] Board representation in ASCII/Unicode characters with all game information.
-  * [x] FEN parsing
-  * [ ] Move generation
-    * [x] Pawn moves
+  * [x] FEN parsing.
+  * [ ] Move generation.
+    * [x] Pawn moves.
       * [x] Pawn promotions.
       * [x] Pawn pushes.
       * [x] Double pawn pushes.
-    * [x] Pawn captures
-    * [x] Pawn en-passant captures
-    * [x] Castling moves
-    * [ ] Knight move
-    * [ ] Bishop moves
-    * [ ] Rook moves
-    * [ ] Queen moves
-    * [ ] King moves
+    * [x] Pawn captures.
+    * [x] Pawn en-passant captures.
+    * [x] Castling moves.
+    * [ ] Knight moves.
+    * [ ] Bishop moves.
+    * [ ] Rook moves.
+    * [ ] Queen moves.
+    * [ ] King moves.
   * [ ] Encoding moves as integers.
   * [ ] Copy/make approach for making moves.
   * [ ] Negamax search with alpha-beta pruning.
