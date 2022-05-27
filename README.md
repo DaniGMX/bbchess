@@ -18,9 +18,12 @@ Here is a list with all the features the engine should support when finished:
   * [x] FEN parsing
   * [ ] Move generation
     * [x] Pawn moves
-      * [x] White & black pawn promotions.
-      * [x] White & black pawn push.
-      * [x] White & black double pawn push.
+      * [x] Pawn promotions.
+      * [x] Pawn pushes.
+      * [x] Double pawn pushes.
+    * [x] Pawn captures
+    * [x] Pawn en-passant captures
+    * [ ] Caslting moves
     * [ ] Knight move
     * [ ] Bishop moves
     * [ ] Rook moves
