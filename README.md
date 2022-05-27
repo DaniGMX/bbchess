@@ -104,7 +104,7 @@ Here is a list with all the features the engine should support when finished:
     * [x] Rook moves.
     * [x] Queen moves.
     * [x] King moves.
-  * [ ] Encoding moves as integers.
+  * [x] Encoding moves as integers.
   * [ ] Copy/make approach for making moves.
   * [ ] Negamax search with alpha-beta pruning.
   * [ ] PV/killer/history move ordering.
