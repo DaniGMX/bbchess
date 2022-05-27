@@ -1087,6 +1087,75 @@ void print_attacked_squares(int side) {
 #define decode_move_enpassant(move) 			(((move) & 0x400000) >> 22)
 #define decode_move_castle(move) 				(((move) & 0x800000) >> 23)
 
+/**
+ * Move list holding all the generated moves.
+ */
+typedef struct {
+	int arr[256];
+	int last;
+} move_list;
+
+static inline void add_move(move_list* move_list, int move) {
+	move_list->arr[move_list->last++] = move;
+}
+
+char promoted_pieces[] = {
+	[Q] = 'q',
+	[R] = 'r',
+	[B] = 'b',
+	[N] = 'n',
+	[q] = 'q',
+	[r] = 'r',
+	[b] = 'b',
+	[n] = 'n',
+};
+
+/** 
+ * Print the UCI move representation of a move.
+ * @param move The move to print.
+ */
+void print_UCI_move(int move) {
+	printf("%s%s%c\n", 
+		square_to_coordinates[decode_move_source_square(move)],
+		square_to_coordinates[decode_move_target_square(move)],
+		promoted_pieces[decode_move_promoted_piece(move)]);
+}
+
+/**
+ * Print all the moves from the move list
+ * @param move_list The move list to print.
+ */
+void print_move_list(move_list* move_list) {
+	printf("\nmove\tpiece\tcapture\tdouble\tenpass\tcastling\n\n");
+
+	//loop over the moves in the move list
+	for (int move_count = 0; move_count < move_list->last; move_count++) {
+		int move = move_list->arr[move_count];
+		#ifdef WIN64
+			printf("%s%s%c\t%c\t%d\t%d\t%d\t\t%d\n", 
+				square_to_coordinates[decode_move_source_square(move)],
+				square_to_coordinates[decode_move_target_square(move)],
+				promoted_pieces[decode_move_promoted_piece(move)],
+				ascii_pieces[decode_move_piece(move)],
+				decode_move_capture(move),
+				decode_move_double_pawn_push(move),
+				decode_move_enpassant(move),
+				decode_move_castle(move));
+		#else
+			printf("%s%s%c\t%s\t%d\t%d\t%d\t%d\n", 
+				square_to_coordinates[decode_move_source_square(move)],
+				square_to_coordinates[decode_move_target_square(move)],
+				promoted_pieces[decode_move_promoted_piece(move)],
+				unicode_pieces[decode_move_piece(move)],
+				decode_move_capture(move),
+				decode_move_double_pawn_push(move),
+				decode_move_enpassant(move),
+				decode_move_castle(move));
+		#endif
+
+		printf("\nMove count: %d\n", move_list->last);
+	}
+}
 
 /**
  * Generate all pseudo legal moves for the given side.
@@ -1597,6 +1666,14 @@ int main() {
 
 	// print_board();
 
+	// move testing
+	int move = encode_move(d7, e8, P, Q, 1, 0, 0, 0);
+	move_list moves[1];
+	moves->last = 0;
+
+	add_move(moves, move);
+
+	print_move_list(moves);
 
 	// generate_moves();
 	return 0;
