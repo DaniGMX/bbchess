@@ -1050,6 +1050,44 @@ void print_attacked_squares(int side) {
 
 #pragma endregion
 
+#pragma region Move Generation
+
+
+static inline void generate_moves() {
+	// define source & target squares
+	int source_square, target_square;
+
+	// define current pieces bitboard copy & their attacks
+	u64 bitboard, attaks;
+
+	// loop over all bitboards
+	for (int piece = P; piece <= k; piece++) {
+		// initialize piece bitboard copy
+		bitboard = bitboards[piece];
+
+		// generate white pawns & white king castling moves
+		if (side == white) {
+
+		}
+		// generate black panws & black king castling moves
+		else {
+
+		}
+
+		// generate knight moves
+
+		// generate bishop moves
+
+		// generate rook moves
+
+		// generate queen moves
+
+		// generate king moves
+	}
+}
+
+#pragma endregion
+
 #pragma region Magic Numbers
 
 /**
