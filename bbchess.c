@@ -1058,7 +1058,7 @@ static inline void generate_moves() {
 	int source_square, target_square;
 
 	// define current pieces bitboard copy & their attacks
-	u64 bitboard, attaks;
+	u64 bitboard, attacks;
 
 	// loop over all bitboards
 	for (int piece = P; piece <= k; piece++) {
@@ -1081,19 +1081,56 @@ static inline void generate_moves() {
 					if (!(target_square < a8) && !get_bit(occupancies[both], target_square)) {
 						// pawn promotions
 						if (source_square >= a7 && source_square <= h7) {
-							printf("pawn promotion: %s%sq\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-							printf("pawn promotion: %s%sr\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-							printf("pawn promotion: %s%sb\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-							printf("pawn promotion: %s%sn\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-						}
-						else {
+							printf("white pawn promotion: %s%sq\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn promotion: %s%sr\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn promotion: %s%sb\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn promotion: %s%sn\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+						} else {
 							// quiet pawn move
-							printf("pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
 
 							// two square ahead pawn move
 							if ((source_square >= a2 && source_square <= h2) && !get_bit(occupancies[both], target_square - 8)) {
-								printf("double pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square - 8]);
+								printf("white double pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square - 8]);
 							}
+						}
+					}
+
+					// initialize white pawn attacks bitboard
+					attacks = pawn_attacks[side][source_square] & occupancies[black];
+
+					// generate pawn captures
+					while (attacks) {
+						// initalize target square
+						target_square = get_lsb_index(attacks);
+
+						// pawn capturing promotions
+						if (source_square >= a7 && source_square <= h7) {
+							printf("white pawn promotion capture: %s%sq\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn promotion capture: %s%sr\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn promotion capture: %s%sb\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("white pawn promotion capture: %s%sn\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+						} else {
+							// pawn capture
+							printf("white pawn capture: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+						}
+
+						// pop lsb
+						pop_bit(attacks, target_square);
+					}
+
+					// generate en passant captures
+					if (enpassant != none) {
+						// look up pawn attacks and bitwise AND with enpassant square
+						u64 enpassant_attacks = pawn_attacks[side][source_square] & (1ULL << enpassant);
+
+						// make sure en-passant capture is available
+						if (enpassant_attacks) {
+							// initialize target square
+							int target_enpassant = get_lsb_index(enpassant_attacks);
+
+							// en-passant capture
+							printf("white pawn en passant capture: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_enpassant]);
 						}
 					}
 
@@ -1118,22 +1155,59 @@ static inline void generate_moves() {
 					if (!(target_square > h1) && !get_bit(occupancies[both], target_square)) {
 						// pawn promotions
 						if (source_square >= a2 && source_square <= h2) {
-							printf("pawn promotion: %s%sq\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-							printf("pawn promotion: %s%sr\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-							printf("pawn promotion: %s%sb\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
-							printf("pawn promotion: %s%sn\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion: %s%sq\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion: %s%sr\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion: %s%sb\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion: %s%sn\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
 						}
 						else {
 							// quiet pawn move
-							printf("pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
 
 							// two square ahead pawn move
 							if ((source_square >= a7 && source_square <= h7) && !get_bit(occupancies[both], target_square + 8)) {
-								printf("double pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square + 8]);
+								printf("black double pawn push: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square + 8]);
 							}
 						}
 					}
 
+					// initialize black pawn attacks bitboard
+					attacks = pawn_attacks[side][source_square] & occupancies[white];
+
+					// generate pawn captures
+					while (attacks) {
+						// initalize target square
+						target_square = get_lsb_index(attacks);
+
+						// pawn capturing promotions
+						if (source_square >= a2 && source_square <= h2) {
+							printf("black pawn promotion capture: %s%sq\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion capture: %s%sr\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion capture: %s%sb\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+							printf("black pawn promotion capture: %s%sn\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+						} else {
+							// pawn capture
+							printf("black pawn capture: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_square]);
+						}
+
+						// pop lsb
+						pop_bit(attacks, target_square);
+					}
+
+					// generate en passant captures
+					if (enpassant != none) {
+						// look up pawn attacks and bitwise AND with enpassant square
+						u64 enpassant_attacks = pawn_attacks[side][source_square] & (1ULL << enpassant);
+
+						// make sure en-passant capture is available
+						if (enpassant_attacks) {
+							// initialize target square
+							int target_enpassant = get_lsb_index(enpassant_attacks);
+
+							// en-passant capture
+							printf("black pawn en passant capture: %s%s\n", square_to_coordinates[source_square], square_to_coordinates[target_enpassant]);
+						}
+					}
 					// pop lsb from piece bitboard copy
 					pop_bit(bitboard, source_square);
 				}
@@ -1282,7 +1356,7 @@ int main() {
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpP/R3K2R b KQkq - 0 1");
+	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPpP/R3K2R b KQkq a3 0 1");
 
 	print_board();
 
