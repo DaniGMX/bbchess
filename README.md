@@ -16,6 +16,16 @@ Here is a list with all the features the engine should support when finished:
     * [x] Attacks fot queen
   * [x] Board representation in ASCII/Unicode characters with all game information.
   * [x] FEN parsing
+  * [ ] Move generation
+    * [x] Pawn moves
+      * [x] White & black pawn promotions.
+      * [x] White & black pawn push.
+      * [x] White & black double pawn push.
+    * [ ] Knight move
+    * [ ] Bishop moves
+    * [ ] Rook moves
+    * [ ] Queen moves
+    * [ ] King moves
   * [ ] Encoding moves as integers.
   * [ ] Copy/make approach for making moves.
   * [ ] Negamax search with alpha-beta pruning.
