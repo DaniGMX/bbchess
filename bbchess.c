@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <memory.h>
+#include <string.h>
 
 #pragma region Type Definitions
 
@@ -70,7 +71,7 @@ int char_pieces[] = {
 	['k'] = k
 };
 
-#define empty_fen "8/8/8/8/8/8/8/8 w - -"
+#define empty_fen "8/8/8/8/8/8/8/8 b - -"
 #define fen_starting_position "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 #define fen_tricky_position "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1"
 #define fen_killer_position "rnbqkb1r/pp1p1pPp/8/2p1pP2/1P1P4/3P3P/P1P1P3/RNBQKBNR w KQkq e6 0 1"
@@ -1336,17 +1337,11 @@ void generate_color_specific_moves(move_list* _move_list, int piece, u64 bitboar
 static inline void generate_moves(move_list* _move_list) {
 	// init move count
 	_move_list->last = 0;
-	
-	// define source & target squares
-	int source_square, target_square;
-
-	// define current pieces bitboard copy & their attacks
-	u64 bitboard, attacks;
 
 	// loop over all bitboards
 	for (int piece = P; piece <= k; piece++) {
 		// initialize piece bitboard copy
-		bitboard = bitboards[piece];
+		u64 bitboard = bitboards[piece];
 
 		generate_color_specific_moves(_move_list, piece, bitboard);
 
@@ -1369,6 +1364,42 @@ static inline void generate_moves(move_list* _move_list) {
 		// generate king moves
 		if ((side == white) ? piece == K : piece == k)
 			generate_moves_for_piece(_move_list, piece, bitboard);
+	}
+}
+
+enum { all_moves, captures };
+
+static inline int make_move(int move, int moves_flag) {
+	// quiet moves
+	if (moves_flag == all_moves) {
+		// preserve the board state
+		save_board();
+
+		// decode move
+		int source_square = decode_move_source_square(move);
+		int target_square = decode_move_target_square(move);
+		int piece = decode_move_piece(move);
+		int promoted_piece = decode_move_promoted_piece(move);
+		int capture = decode_move_capture(move);
+		int double_pawn_push = decode_move_double_pawn_push(move);
+		int enpassant = decode_move_enpassant(move);
+		int castling = decode_move_castle(move);
+
+		// move piece
+		pop_bit(bitboards[piece], source_square);
+		set_bit(bitboards[piece], target_square);
+
+
+	}
+	// capture moves
+	else {
+		// check if the move is a capture
+		if (decode_move_capture(move)) {
+			make_move(move, all_moves);
+		}
+		// If the move is not a capture, don´t make the move
+		else
+			return 0;
 	}
 }
 
@@ -1496,21 +1527,32 @@ void init_all() {
 
 #pragma endregion
 
+#pragma region Board State Preservation
+
+#define save_board() 																		\
+	u64 bitboards_copy[12], occupancies_copy[3]; 											\
+	int side_copy, enpassant_copy, castling_rights_copy;								 	\
+	memcpy(bitboards_copy, bitboards, sizeof(bitboards)); 									\
+	memcpy(occupancies_copy, occupancies, sizeof(occupancies)); 							\
+	side_copy = side, enpassant_copy = enpassant, castling_rights_copy = castling_rights; 	\
+
+#define restore_board() 																	\
+	memcpy(bitboards, bitboards_copy, sizeof(bitboards_copy)); 								\
+	memcpy(occupancies, occupancies_copy, sizeof(occupancies_copy)); 						\
+	side = side_copy, enpassant = enpassant_copy, castling_rights = castling_rights_copy; 	\
+
+#pragma endregion
+
 // main function
 int main() {
-	// init all
+	// initialize all
 	init_all();
 
 	// parse custom FEN string
-	parse_fen(fen_tricky_position);
+	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1");
 	print_board();
 
-	// move testing
-	move_list _move_list[1];
 
-	generate_moves(_move_list);
-
-	print_move_list(_move_list);
 
 	return 0;
 } 
