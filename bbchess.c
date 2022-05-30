@@ -1052,6 +1052,22 @@ void print_attacked_squares(int side) {
 
 #pragma endregion
 
+#pragma region Board State Preservation
+
+#define save_board() 																		\
+	u64 bitboards_copy[12], occupancies_copy[3]; 											\
+	int side_copy, enpassant_copy, castling_rights_copy;								 	\
+	memcpy(bitboards_copy, bitboards, sizeof(bitboards)); 									\
+	memcpy(occupancies_copy, occupancies, sizeof(occupancies)); 							\
+	side_copy = side, enpassant_copy = enpassant, castling_rights_copy = castling_rights; 	\
+
+#define restore_board() 																	\
+	memcpy(bitboards, bitboards_copy, sizeof(bitboards_copy)); 								\
+	memcpy(occupancies, occupancies_copy, sizeof(occupancies_copy)); 						\
+	side = side_copy, enpassant = enpassant_copy, castling_rights = castling_rights_copy; 	\
+
+#pragma endregion
+
 #pragma region Move Generation
 
 /* Move encoding
@@ -1389,7 +1405,21 @@ static inline int make_move(int move, int moves_flag) {
 		pop_bit(bitboards[piece], source_square);
 		set_bit(bitboards[piece], target_square);
 
+		// handle captures
+		if (capture) {
+			// pick bitboards ranges depending on side
+			int start_piece = (side == white) ? p : P;
+			int end_piece = (side == white) ? k : K;
 
+			// loop over bitboards opposite to the side to move
+			for (int opp_piece = start_piece; opp_piece <= end_piece; opp_piece++) {
+				// if there´s a piece on the target square, pop that bit and break
+				if (get_bit(bitboards[opp_piece], target_square)) {
+					pop_bit(bitboards[opp_piece], target_square);
+					break;
+				}
+			}
+		}
 	}
 	// capture moves
 	else {
@@ -1527,32 +1557,38 @@ void init_all() {
 
 #pragma endregion
 
-#pragma region Board State Preservation
-
-#define save_board() 																		\
-	u64 bitboards_copy[12], occupancies_copy[3]; 											\
-	int side_copy, enpassant_copy, castling_rights_copy;								 	\
-	memcpy(bitboards_copy, bitboards, sizeof(bitboards)); 									\
-	memcpy(occupancies_copy, occupancies, sizeof(occupancies)); 							\
-	side_copy = side, enpassant_copy = enpassant, castling_rights_copy = castling_rights; 	\
-
-#define restore_board() 																	\
-	memcpy(bitboards, bitboards_copy, sizeof(bitboards_copy)); 								\
-	memcpy(occupancies, occupancies_copy, sizeof(occupancies_copy)); 						\
-	side = side_copy, enpassant = enpassant_copy, castling_rights = castling_rights_copy; 	\
-
-#pragma endregion
-
 // main function
 int main() {
 	// initialize all
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq c6 0 1");
+	parse_fen(fen_tricky_position);
 	print_board();
 
+	// create move list
+	move_list _move_list[1];
 
+	// generate moves
+	generate_moves(_move_list);
+
+	// loop over generated moves
+	for (int i = 0; i < _move_list->last; i++) {
+		int move = _move_list->arr[i];
+
+		// preserve board state
+		save_board();
+
+		// make move
+		make_move(move, all_moves);
+		print_board();
+		getchar();
+
+		// restore board state
+		restore_board();
+		print_board();
+		getchar();
+	}
 
 	return 0;
 } 
