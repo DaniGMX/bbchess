@@ -79,6 +79,48 @@ How do we encode a move into a 32-bit integer then? Well, we just need to make u
 
 We only need 6 bits for both source and target squares because there are 64 squares in the chessboard, indexed from 0 (a1) to 63 (h8), and therefore, the maximum number (63) is represented by a minimum of 6 bits. For the piece, as there are 12 pieces, we need a minimum of 4 bits to represent every piece, 4 bits for the promoted piece, in case the move is a promotion, and 1 bit per flag (move is a capture, a double pawn push, an en enpassant move or a clastling move).
 
+# Castling
+One move every chess player must know is castling. This can be tricky to implement in a chess engine/chess AI though, as there are some rules that can take away the right to perform said move. Any player can perform a castling move if all of this conditions are met, for every king-rook pair:
+ * Neither the king nor the rook has previously moved.
+ * There are no pieces between the king and the rook.
+ * The king is not currently in check.
+ * The king does not pass through a square that is attacked by an opposing piece.
+ * The king does not end up in check. (True of any legal move.)
+
+In order to implement this using bits, we will make use of 4-bit binary integers and apply bitwise operations to them. A brief explanation of how this will works is portrayed below:
+
+```
+                                castling     move         binary    decimal
+                                right        update
+
+king & rooks didn´t move:       1111    &    1111    =    1111      15
+        
+        white king moved:       1111    &    1100    =    1100      12
+ white king´s rook moved:       1111    &    1110    =    1110      14
+white queen´s rook moved:       1111    &    1101    =    1101      13
+            
+        black king moved:       1111    &    0011    =    0011       3
+ black king´s rook moved:       1111    &    1011    =    1011      11
+black queen´s rook moved:       1111    &    0111    =    0111       7
+```
+
+The first 4-bit number of the operation (castling right) refers to the global state of the available castling rights, and the second value refers to a value indexes by the square which we will see below. Making a bitwise AND operation between the two, actually takes away the proper castling right. The result is then assigned to the global state of the available castling rights.
+
+Now, code-wise, we will need a 64-long int array called `castling_rights` to store these integers mentioned above, just like so:
+
+``` C
+const int castling_rights[64] = {
+	 7, 15, 15, 15, 15,  3, 15, 15, 11,
+	15, 15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15, 15,
+	15, 15, 15, 15, 15, 15, 15, 15, 15,
+	13, 15, 15, 15, 15, 12, 15, 15, 14
+};
+```
+
 # Features
 Here is a list with all the features the engine should support when finished:
   * [x] Bitboard representation.
