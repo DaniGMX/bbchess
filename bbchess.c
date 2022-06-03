@@ -1252,7 +1252,7 @@ static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bit
 		int source_square = get_lsb_index(bitboard);
 		int target_square = (side == white) ? 
 			source_square - 8 : 
-			target_square + 8 ;
+			source_square + 8 ;
 
 		// quiet pawn moves
 		if ((side == white) ? 
@@ -1272,8 +1272,8 @@ static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bit
 
 				//handle double pawn push
 				if ((side == white) ?
-						(source_square >= a2 && source_square <= h2) && !get_bit(occupancies[both], target_square - 8) :
-						(source_square >= a7 && source_square <= h7) && !get_bit(occupancies[both], target_square + 8)) {
+						(source_square >= a2 && source_square <= h2) && !get_bit(occupancies[both], target_square -= 8) :
+						(source_square >= a7 && source_square <= h7) && !get_bit(occupancies[both], target_square += 8) ) {
 					add_move(_move_list, encode_move(source_square, target_square, piece, 0, 0, 1, 0, 0));
 				}
 			}
@@ -1491,6 +1491,22 @@ static inline int make_move(int move, int moves_flag) {
 		// update castling rights
 		available_castlings &= castling_rights[source_square];
 		available_castlings &= castling_rights[target_square];
+
+		// reset occupancies
+		memset(occupancies, 0ULL, sizeof(occupancies));
+
+		// loop over pieces to set occupancies
+		for (int piece = P; piece <= k; piece++) {
+			// white pieces
+			if (piece < p) {
+				occupancies[white] |= bitboards[piece];
+			}
+			// black pieces
+			else {
+				occupancies[black] |= bitboards[piece];
+			}
+		}
+		occupancies[both] = occupancies[white] | occupancies[black];
 	}
 	// capture moves
 	else {
@@ -1634,8 +1650,7 @@ int main() {
 	init_all();
 
 	// parse custom FEN string
-	//parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R b KQkq c6 0 1");
-	parse_fen("r3k2r/pPppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 	print_board();
 
 	// create move list
@@ -1646,22 +1661,25 @@ int main() {
 	print_move_list(_move_list);
 
 	// loop over generated moves
-	// for (int i = 0; i < _move_list->last; i++) {
-	// 	int move = _move_list->arr[i];
+	for (int i = 0; i < _move_list->last; i++) {
+		int move = _move_list->arr[i];
 
-	// 	// preserve board state
-	// 	save_board();
+		// preserve board state
+		save_board();
 
-	// 	// make move
-	// 	make_move(move, all_moves);
-	// 	print_board();
-	// 	getchar();
+		// make move
+		make_move(move, all_moves);
+		// print_board();
+		print_bitboard(occupancies[white]);
+		getchar();
 
-	// 	// restore board state
-	// 	restore_board();
-	// 	print_board();
-	// 	getchar();
-	// }
+		// restore board state
+		restore_board();
+		// print_board();
+		print_bitboard(occupancies[white]);
+
+		getchar();
+	}
 
 	return 0;
 } 
