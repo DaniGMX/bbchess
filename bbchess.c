@@ -1507,6 +1507,25 @@ static inline int make_move(int move, int moves_flag) {
 			}
 		}
 		occupancies[both] = occupancies[white] | occupancies[black];
+
+		// change side (this is done with an XOR with 1 because white = 00 and black = 01 in binary)
+		side ^= 1;
+
+		// check if the king is not being exposed into check
+		if (is_square_attacked(
+				((side == white) ? 
+					get_lsb_index(bitboards[k]) : 
+					get_lsb_index(bitboards[K])),
+				side)) {
+			// move is illegal
+			restore_board();
+
+			// return illegal move
+			return 0;
+		} else {
+			// return legal move
+			return 1;
+		}
 	}
 	// capture moves
 	else {
@@ -1650,7 +1669,7 @@ int main() {
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+	parse_fen("r3k2r/p1ppRpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBQPPP/R3K2R b KQkq - 0 1");
 	print_board();
 
 	// create move list
@@ -1658,7 +1677,7 @@ int main() {
 
 	// generate moves
 	generate_moves(_move_list);
-	print_move_list(_move_list);
+	// print_move_list(_move_list);
 
 	// loop over generated moves
 	for (int i = 0; i < _move_list->last; i++) {
@@ -1668,15 +1687,17 @@ int main() {
 		save_board();
 
 		// make move
-		make_move(move, all_moves);
-		// print_board();
-		print_bitboard(occupancies[white]);
+		if (!make_move(move, all_moves)) 
+			continue;
+
+		print_board();
+		// print_bitboard(occupancies[white]);
 		getchar();
 
 		// restore board state
 		restore_board();
-		// print_board();
-		print_bitboard(occupancies[white]);
+		print_board();
+		// print_bitboard(occupancies[white]);
 
 		getchar();
 	}
