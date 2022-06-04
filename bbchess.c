@@ -1,9 +1,12 @@
 
 // system headers
 #include <stdio.h>
-#include <time.h>
-#include <memory.h>
 #include <string.h>
+#ifdef WIN64
+	#include <windows.h>
+#else
+	#include <sys/time.h>
+#endif
 
 #pragma region Type Definitions
 
@@ -1663,13 +1666,27 @@ void init_all() {
 
 #pragma endregion
 
+#pragma region Time Management
+
+int get_time_millis() {
+#ifdef WIN64
+	return GetTickCount();
+#else
+	struct timeval time_val;
+	gettimeofday(&time_val, NULL);
+	return time_val.tv_sec * 1000 + time_val.tv_usec / 1000;
+#endif
+}
+
+#pragma endregion
+
 // main function
 int main() {
 	// initialize all
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppRpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBQPPP/R3K2R b KQkq - 0 1");
+	parse_fen("r3k2r/p1ppQpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBQPPP/R3K2R b KQkq - 0 1");
 	print_board();
 
 	// create move list
@@ -1678,6 +1695,8 @@ int main() {
 	// generate moves
 	generate_moves(_move_list);
 	// print_move_list(_move_list);
+
+	int start_time = get_time_millis();
 
 	// loop over generated moves
 	for (int i = 0; i < _move_list->last; i++) {
@@ -1701,6 +1720,9 @@ int main() {
 
 		getchar();
 	}
+
+	int ellapsed = get_time_millis() - start_time;
+	printf("Ellapsed time: %dms\n", ellapsed);
 
 	return 0;
 } 
