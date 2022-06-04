@@ -156,10 +156,15 @@ Here is a list with all the features the engine should support when finished:
   * [ ] UCI protocol.
 
 # Run the engine
-In order to run the program, just run this command on the root folder of the project:
+In order to run the program, you can do this reducing compilaion times by executing this command:
 
 ```
 make debug && ./bbchess
+```
+
+Or, if you want to improve performance, run this instead"
+```
+make && ./bbchess
 ```
 
 # Sources
