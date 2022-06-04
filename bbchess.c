@@ -1244,7 +1244,7 @@ static inline void generate_moves_for_piece(move_list* _move_list, int piece, u6
 	}
 }
 
-static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bitboard) {
+static inline void generate_pawn_moves(move_list* _move_list, int pawn, u64 bitboard) {
 	int queen 		= (side == white) ? Q : q;
 	int rook 		= (side == white) ? R : r;
 	int bishop 		= (side == white) ? B : b;
@@ -1265,19 +1265,19 @@ static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bit
 			if ((side == white) ?
 					(source_square >= a7 && source_square <= h7) :
 					(source_square >= a2 && source_square <= h2)) {
-				add_move(_move_list, encode_move(source_square, target_square, piece, queen,  0, 0, 0, 0));
-				add_move(_move_list, encode_move(source_square, target_square, piece, rook,   0, 0, 0, 0));
-				add_move(_move_list, encode_move(source_square, target_square, piece, bishop, 0, 0, 0, 0));
-				add_move(_move_list, encode_move(source_square, target_square, piece, knight, 0, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, queen,  0, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, rook,   0, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, bishop, 0, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, knight, 0, 0, 0, 0));
 			} else {
 				// handle single pawn move
-				add_move(_move_list, encode_move(source_square, target_square, piece, 0, 0, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, 0, 0, 0, 0, 0));
 
 				//handle double pawn push
 				if ((side == white) ?
 						(source_square >= a2 && source_square <= h2) && !get_bit(occupancies[both], target_square -= 8) :
 						(source_square >= a7 && source_square <= h7) && !get_bit(occupancies[both], target_square += 8) ) {
-					add_move(_move_list, encode_move(source_square, target_square, piece, 0, 0, 1, 0, 0));
+					add_move(_move_list, encode_move(source_square, target_square, pawn, 0, 0, 1, 0, 0));
 				}
 			}
 		}
@@ -1292,14 +1292,14 @@ static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bit
 			if ((side == white) ?
 					(source_square >= a7 && source_square <= h7) :
 					(source_square >= a2 && source_square <= h2)) {
-				add_move(_move_list, encode_move(source_square, target_square, piece, queen,  1, 0, 0, 0));
-				add_move(_move_list, encode_move(source_square, target_square, piece, rook,   1, 0, 0, 0));
-				add_move(_move_list, encode_move(source_square, target_square, piece, bishop, 1, 0, 0, 0));
-				add_move(_move_list, encode_move(source_square, target_square, piece, knight, 1, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, queen,  1, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, rook,   1, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, bishop, 1, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, knight, 1, 0, 0, 0));
 			} 
 			// handle regular pawn captures
 			else {
-				add_move(_move_list, encode_move(source_square, target_square, piece, 0, 1, 0, 0, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, 0, 1, 0, 0, 0));
 			}
 
 			// pop last tried attack
@@ -1313,7 +1313,7 @@ static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bit
 			// make sure en-passant is available
 			if (open_enpassant_attack) {
 				target_square = get_lsb_index(open_enpassant_attack);
-				add_move(_move_list, encode_move(source_square, target_square, piece, 0, 1, 0, 1, 0));
+				add_move(_move_list, encode_move(source_square, target_square, pawn, 0, 1, 0, 1, 0));
 			}
 		}
 
@@ -1322,33 +1322,32 @@ static inline void generate_pawn_moves(move_list* _move_list, int piece, u64 bit
 	}
 }
 
-static inline void genreate_castling_moves(move_list* _move_list, int piece, u64 bitboard) {
-	int king_side_castle	 = available_castlings & ((side == white) ? wk : bk);
-	int queen_side_castle	 = available_castlings & ((side == white) ? wq : bq);
-	int king_side_connected  = (side == white) ?
+static inline void genreate_castling_moves(move_list* _move_list, int king, u64 bitboard) {
+	int king_side_castle	 	= available_castlings & ((side == white) ? wk : bk);
+	int queen_side_castle	 	= available_castlings & ((side == white) ? wq : bq);
+	int king_side_connected  	= (side == white) ?
 		!get_bit(occupancies[both], f1) && !get_bit(occupancies[both], g1) :
-		!get_bit(occupancies[both], f8) && !get_bit(occupancies[both], g8) ;
-	int queen_side_connected =  (side == white) ?
+		!get_bit(occupancies[both], f8) && !get_bit(occupancies[both], g8);
+	int queen_side_connected 	= (side == white) ?
 		!get_bit(occupancies[both], d1) && !get_bit(occupancies[both], c1) && !get_bit(occupancies[both], b1) :
-		!get_bit(occupancies[both], d8) && !get_bit(occupancies[both], c8) && !get_bit(occupancies[both], b8) ;
-	int no_king_side_checks  = (side == white) ?
+		!get_bit(occupancies[both], d8) && !get_bit(occupancies[both], c8) && !get_bit(occupancies[both], b8);
+	int no_king_side_checks  	= (side == white) ?
 		!is_square_attacked(e1, black) && !is_square_attacked(f1, black) :
-		!is_square_attacked(e8, white) && !is_square_attacked(f8, white) ;
-	int no_queen_side_checks = (side == white) ?
+		!is_square_attacked(e8, white) && !is_square_attacked(f8, white);
+	int no_queen_side_checks 	= (side == white) ?
 		!is_square_attacked(e1, black) && !is_square_attacked(d1, black) :
-		!is_square_attacked(e8, white) && !is_square_attacked(d8, white) ;
+		!is_square_attacked(e8, white) && !is_square_attacked(d8, white);
+	int source_square 			= (side == white) ? e1 : e8;
+	int ks_target_square 		= (side == white) ? g1 : g8;
+	int qs_target_square		= (side == white) ? c1 : c8;
 
 	// handle king-side castling
 	if (king_side_castle && king_side_connected && no_king_side_checks) {
-		(side == white) ?
-			add_move(_move_list, encode_move(e1, g1, piece, 0, 0, 0, 0, 1)) :
-			add_move(_move_list, encode_move(e8, g8, piece, 0, 0, 0, 0, 1)) ;
+		add_move(_move_list, encode_move(source_square, ks_target_square, king, 0, 0, 0, 0, 1));
 	}
 	//handle queen-side castling
 	if (queen_side_castle && queen_side_connected && no_queen_side_checks) {
-		(side == white) ?
-			add_move(_move_list, encode_move(e1, c1, piece, 0, 0, 0, 0, 1)) :
-			add_move(_move_list, encode_move(e8, c8, piece, 0, 0, 0, 0, 1)) ;
+		add_move(_move_list, encode_move(source_square, qs_target_square, king, 0, 0, 0, 0, 1));
 	}
 }
 
@@ -1668,6 +1667,9 @@ void init_all() {
 
 #pragma region Time Management
 
+/**
+ * Returns the current time in milliseconds.
+ */
 int get_time_millis() {
 #ifdef WIN64
 	return GetTickCount();
@@ -1680,49 +1682,57 @@ int get_time_millis() {
 
 #pragma endregion
 
+#pragma region Perft
+
+/** Leaf nodes (number of positions reached during the last test of te move generator for a given depth) */
+long nodes;
+
+static inline void perft_driver(int depth) {
+	// recursion escape condition
+	if (depth == 0) {
+		// increment nodes count (count reached positions)
+		nodes++;
+		return;
+	}
+
+	// create move list and populate it
+	move_list _move_list[1];
+	generate_moves(_move_list);
+
+	// loop over generated moves
+	for (int i = 0; i < _move_list->last; i++) {
+		// preserve board state
+		save_board();
+
+		// make move
+		if (!make_move(_move_list->arr[i], all_moves)) 
+			continue;
+
+		// call perft driver recursively
+		perft_driver(depth - 1);
+
+		// restore board state
+		restore_board();
+	}
+}
+
+#pragma endregion
+
 // main function
 int main() {
 	// initialize all
 	init_all();
 
 	// parse custom FEN string
-	parse_fen("r3k2r/p1ppQpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBQPPP/R3K2R b KQkq - 0 1");
+	parse_fen(fen_starting_position);
 	print_board();
-
-	// create move list
-	move_list _move_list[1];
-
-	// generate moves
-	generate_moves(_move_list);
-	// print_move_list(_move_list);
 
 	int start_time = get_time_millis();
 
-	// loop over generated moves
-	for (int i = 0; i < _move_list->last; i++) {
-		int move = _move_list->arr[i];
+	// perft_driver(5);
 
-		// preserve board state
-		save_board();
-
-		// make move
-		if (!make_move(move, all_moves)) 
-			continue;
-
-		print_board();
-		// print_bitboard(occupancies[white]);
-		getchar();
-
-		// restore board state
-		restore_board();
-		print_board();
-		// print_bitboard(occupancies[white]);
-
-		getchar();
-	}
-
-	int ellapsed = get_time_millis() - start_time;
-	printf("Ellapsed time: %dms\n", ellapsed);
-
+	int elapsed = get_time_millis() - start_time;
+	printf("Elapsed time: %dms\n", elapsed);
+	printf("Nodes: %ld\n", nodes);
 	return 0;
 } 
