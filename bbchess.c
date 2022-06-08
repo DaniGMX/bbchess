@@ -1,6 +1,7 @@
 
 // system headers
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #ifdef WIN64
 	#include <windows.h>
@@ -1876,20 +1877,24 @@ int parse_move(char* move_str) {
 	return 0;
 }
 
-void parse_position(char* command) {
+/**
+ * Parse UCI "position" command from a given input string.
+ * @param input_str The input string.
+ */
+void parse_position_command(char* input_str) {
 	// shift pointer to the right where next token begins
-	command += 9;
+	input_str += 9;
 
 	// initialize the pointer to the current character in the command string
-	char* current_char = command;
+	char* current_char = input_str;
 
 	// parse UCI "startpos" command
-	if (strncmp(command, "startpos", 8) == 0) {
+	if (strncmp(input_str, "startpos", 8) == 0) {
 		// initialize the board with the starting position
 		parse_fen(fen_starting_position);
 	} else {
 		// make sure "fen" is available within command string
-		current_char = strstr(command, "fen");
+		current_char = strstr(input_str, "fen");
 
 		// if no "fen" command is available, return
 		if (current_char == NULL)
@@ -1906,7 +1911,7 @@ void parse_position(char* command) {
 	}
 
 	// parse moves for position
-	current_char = strstr(command, "moves");
+	current_char = strstr(input_str, "moves");
 
 	// if "moves" command is available
 	if (current_char != NULL) {
@@ -1936,6 +1941,27 @@ void parse_position(char* command) {
 	}
 }
 
+/**
+ * Parse UCI "go" command from a given input string.
+ * @param input_str The input string.
+ */
+void parse_go_command(char* input_str) {
+	// initialize the depth
+	int depth = -1;
+
+	// initialize character pointer
+	char* current_char = strstr(input_str, "depth");
+
+	if (current_char) {
+		// get depth from characters after "go"
+		depth = atoi(current_char + 6);
+	}
+
+	// search position
+	// search_position(depth);
+	printf(" > Depth: %d\n", depth);
+}
+
 #pragma endregion
 
 // main function
@@ -1946,10 +1972,10 @@ int main() {
 	int start_time = get_time_millis();
 
 	// parse "position"
-	parse_position("position startpos moves e2e4 e7e5 g1f3");
+	parse_position_command("position startpos moves e2e4 e7e5 g1f3");
 	print_board();
 
-	printf("Runtime: %d\n", get_time_millis() - start_time);
+	parse_go_command("go depth 6");
 
 	return 0;
 } 
