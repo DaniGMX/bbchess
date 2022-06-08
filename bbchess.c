@@ -240,7 +240,9 @@ int open_enpassant = none;
  */
 int available_castlings;
 
-/** Print the chess board */
+/** 
+ * Print the chess board 
+ */
 void print_board() {
  	printf("\n   - Chess Board - \n\n");
 
@@ -1099,6 +1101,7 @@ void print_attacked_squares(int side) {
 	(enpassant << 22) |		\
 	(castle << 23)
 
+// decode move macros
 #define decode_move_source_square(move) 		((move) & 0x3F)
 #define decode_move_target_square(move) 		(((move) & 0xFC0) >> 6)
 #define decode_move_piece(move) 				(((move) & 0xF000) >> 12)
@@ -1116,10 +1119,16 @@ typedef struct {
 	int last;
 } move_list;
 
+/**
+ * Adds a move to the move list.
+ * @param move_list The move list to add the move to.
+ * @param move The move to add.
+ */
 static inline void add_move(move_list* move_list, int move) {
 	move_list->arr[move_list->last++] = move;
 }
 
+/** Map to retrieve the promoted piece character from the promoted piece enum. */
 char promoted_pieces[] = {
 	[Q] = 'q',
 	[R] = 'r',
@@ -1187,6 +1196,12 @@ void print_move_list(move_list* move_list) {
 	printf("\nMove count: %d\n", move_list->last);
 }
 
+/**
+ * Returns a bitboard containing all the squares attacked by a piece on a given square.
+ * @param piece The piece to check.
+ * @param square The square to check.
+ * @return The bitboard containing all the attacked squares.
+ */
 static inline u64 attacks_for_piece(int piece, int source_square) {
 	u64 attacks;
 	switch (piece) {
@@ -1210,6 +1225,12 @@ static inline u64 attacks_for_piece(int piece, int source_square) {
 	return attacks;
 }
 
+/**
+ * Generates all the moves for a given piece given a bitboard of said piece, and adds them to the move list.
+ * @param move_list Move list to add the moves to, if any.
+ * @param piece The piece to generate the moves for.
+ * @param bitboard The bitboard of the given piece.
+ */
 static inline void generate_moves_for_piece(move_list* _move_list, int piece, u64 bitboard) {
 	// initialize source and target squares
 	int source_square, target_square;
@@ -1244,6 +1265,12 @@ static inline void generate_moves_for_piece(move_list* _move_list, int piece, u6
 	}
 }
 
+/**
+ * Generates all pawn specific moves given the pawn bitboard, and adds them to the move list.
+ * @param move_list Move list to add the moves to, if any.
+ * @param pawn The pawn to generate the moves for.
+ * @param bitboard The pawn bitboard.
+ */
 static inline void generate_pawn_moves(move_list* _move_list, int pawn, u64 bitboard) {
 	int queen 		= (side == white) ? Q : q;
 	int rook 		= (side == white) ? R : r;
@@ -1322,6 +1349,12 @@ static inline void generate_pawn_moves(move_list* _move_list, int pawn, u64 bitb
 	}
 }
 
+/**
+ * Generates all caslting moves for the given king.
+ * @param move_list Move list to add the moves to, if any.
+ * @param pawn The king to generate the castlings for.
+ * @param bitboard The king bitboard.
+ */
 static inline void genreate_castling_moves(move_list* _move_list, int king, u64 bitboard) {
 	int king_side_castle	 	= available_castlings & ((side == white) ? wk : bk);
 	int queen_side_castle	 	= available_castlings & ((side == white) ? wq : bq);
@@ -1353,6 +1386,7 @@ static inline void genreate_castling_moves(move_list* _move_list, int king, u64 
 
 /**
  * Generate all pseudo legal moves for the given side.
+ * @param move_list Move list to add the generated moves to, if any.
  */
 static inline void generate_moves(move_list* _move_list) {
 	// init move count
@@ -1394,6 +1428,7 @@ static inline void generate_moves(move_list* _move_list) {
 	}
 }
 
+// enum to determine if the search will be done by all moves or only the captures
 enum { all_moves, captures };
 
 // caslting rights
@@ -1408,6 +1443,12 @@ const int castling_rights[64] = {
 	13, 15, 15, 15, 12, 15, 15, 14
 };
 
+/**
+ * Performs a move on the board, if legal.
+ * @param move The move to perform.
+ * @param move_flag Whether to perform all moves or only captures.
+ * @return Whether the move was legal.
+ */
 static inline int make_move(int move, int moves_flag) {
 	// quiet moves
 	if (moves_flag == all_moves) {
@@ -1539,6 +1580,8 @@ static inline int make_move(int move, int moves_flag) {
 		else
 			return 0;
 	}
+
+	return 0;
 }
 
 #pragma endregion
@@ -1665,7 +1708,7 @@ void init_all() {
 
 #pragma endregion
 
-#pragma region Time Management
+#pragma region Performace Testing
 
 /**
  * Returns the current time in milliseconds.
@@ -1680,13 +1723,16 @@ int get_time_millis() {
 #endif
 }
 
-#pragma endregion
-
-#pragma region Perft
-
 /** Leaf nodes (number of positions reached during the last test of te move generator for a given depth) */
 long nodes;
 
+/**
+ * Perft debugging function to walk the move generation tree
+ * of strictly legal moves to count all the leaf nodes at a
+ * certain depth, which can be compared to predetermined
+ * values and used to isolate bugs.
+ * @param depth Maximum depth of the tree to count the leafs from.
+ */
 static inline void perft_driver(int depth) {
 	// recursion escape condition
 	if (depth == 0) {
@@ -1716,6 +1762,180 @@ static inline void perft_driver(int depth) {
 	}
 }
 
+/**
+ * Performance test function to test the efficiency and 
+ * accuracy of the engine.
+ * @param depth Maximum depth of search to perform the test.
+ */
+void perft_test(int depth) {
+	printf("\n - Performance test - \n");
+
+
+	// create move list and populate it
+	move_list _move_list[1];
+	generate_moves(_move_list);
+
+	int start_time = get_time_millis();
+
+	// loop over generated moves
+	for (int i = 0; i < _move_list->last; i++) {
+		// preserve board state
+		save_board();
+
+		int move = _move_list->arr[i];
+
+		// make move
+		if (!make_move(move, all_moves)) 
+			continue;
+
+		// cummulative nodes
+		long prev_nodes = nodes;
+
+		// call perft driver recursively
+		perft_driver(depth - 1);
+
+		long curr_nodes = nodes - prev_nodes;
+
+		// restore board state
+		restore_board();
+
+		// print the move
+		printf(" move: ");
+		print_UCI_move(move);
+		printf("     node: %ld\n", curr_nodes);
+	}
+
+	int elapsed = get_time_millis() - start_time;
+
+	// print results
+	printf("\n   - Stats - \n");
+	printf(  "   depth:      %d\n", depth);
+	printf(  "   nodes:      %ld\n", nodes);
+	printf(  "   elapsed t:  %d\n", elapsed);
+}
+
+#pragma endregion
+
+#pragma region UCI
+
+/**
+ * Parses the given move from a string. (e.g. "e7e8q")
+ * @param move_str The string containing the move.
+ * @return Whether the move is legal or not
+ */
+int parse_move(char* move_str) {
+	move_list _move_list[1];
+
+	generate_moves(_move_list);
+
+	// parse source and target squares
+	int source_square = (move_str[0] - 'a') + ((8 - (move_str[1] - '0')) * 8);
+	int target_square = (move_str[2] - 'a') + ((8 - (move_str[3] - '0')) * 8);
+
+	// define parse promoted piece
+	int promoted_piece = 0;
+
+	// loop over the moves within the move list
+	for (int i = 0; i < _move_list->arr[i]; i++) {
+		// init move
+		int move = _move_list->arr[i];
+
+		// make sure source and target squares are available within the generated move
+		if (decode_move_source_square(move) == source_square && decode_move_target_square(move) == target_square) {
+			// initialize promoted piece, if that's the case
+			promoted_piece = decode_move_promoted_piece(move);
+
+			// only check this if promoted piece is available
+			if (promoted_piece) {
+				// promotion to queen
+				if ((promoted_piece == Q || promoted_piece == q) && move_str[4] == 'q')
+					return move;
+
+				// promotion to rook
+				if ((promoted_piece == R || promoted_piece == r) && move_str[4] == 'r')
+					return move;
+
+				// promotion to bishop
+				if ((promoted_piece == B || promoted_piece == b) && move_str[4] == 'b')
+					return move;
+
+				// promotion to knight
+				if ((promoted_piece == N || promoted_piece == n) && move_str[4] == 'n')
+					return move;
+
+				// continue in case of bad promotion input
+				continue;
+			}
+
+			// if the move is not a promotion, return it
+			return move;
+		}
+	}
+
+	// return illegal move by default
+	return 0;
+}
+
+void parse_position(char* command) {
+	// shift pointer to the right where next token begins
+	command += 9;
+
+	// initialize the pointer to the current character in the command string
+	char* current_char = command;
+
+	// parse UCI "startpos" command
+	if (strncmp(command, "startpos", 8) == 0) {
+		// initialize the board with the starting position
+		parse_fen(fen_starting_position);
+	} else {
+		// make sure "fen" is available within command string
+		current_char = strstr(command, "fen");
+
+		// if no "fen" command is available, return
+		if (current_char == NULL)
+			parse_fen(fen_starting_position);
+		else {
+			// shift pointer to the right where next token begins
+			current_char += 4;
+
+			// initialize board position from given fen string
+			parse_fen(current_char);
+		}
+
+		printf("%s\n", current_char);
+	}
+
+	// parse moves for position
+	current_char = strstr(command, "moves");
+
+	// if "moves" command is available
+	if (current_char != NULL) {
+		// shift pointer to the right where next token begins
+		current_char += 6;
+
+		// loop over all moves
+		while (*current_char) {
+			// parse move
+			int move = parse_move(current_char);
+
+			// if there are no moves left, break
+			if (move == 0)
+				break;
+
+			// make move
+			make_move(move, all_moves);
+
+			// shift pointer to the right
+			while (*current_char && *current_char != ' ') {
+				current_char++;
+			}
+
+			// go to the next move
+			current_char++;
+		}
+	}
+}
+
 #pragma endregion
 
 // main function
@@ -1723,16 +1943,13 @@ int main() {
 	// initialize all
 	init_all();
 
-	// parse custom FEN string
-	parse_fen(fen_starting_position);
-	print_board();
-
 	int start_time = get_time_millis();
 
-	// perft_driver(5);
+	// parse "position"
+	parse_position("position startpos moves e2e4 e7e5 g1f3");
+	print_board();
 
-	int elapsed = get_time_millis() - start_time;
-	printf("Elapsed time: %dms\n", elapsed);
-	printf("Nodes: %ld\n", nodes);
+	printf("Runtime: %d\n", get_time_millis() - start_time);
+
 	return 0;
 } 
