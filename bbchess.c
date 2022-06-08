@@ -1956,6 +1956,9 @@ void parse_go_command(char* input_str) {
 		// get depth from characters after "go"
 		depth = atoi(current_char + 6);
 	}
+	else {
+		depth = 6;
+	}
 
 	// search position
 	// search_position(depth);
@@ -1975,7 +1978,7 @@ int main() {
 	parse_position_command("position startpos moves e2e4 e7e5 g1f3");
 	print_board();
 
-	parse_go_command("go depth 6");
+	parse_go_command("go deth 7");
 
 	return 0;
 } 
