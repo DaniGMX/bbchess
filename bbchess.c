@@ -155,7 +155,7 @@ static inline int count_bits(u64 bitboard) {
  * @param bitboard The bitboard to get the least significant bit index from.
  * @return The least significant bit index set in the bitboard.
  */
-static inline int get_lsb_index(u64 bitboard) {
+static inline int lsb_index(u64 bitboard) {
 	if (bitboard) {
 		return count_bits((bitboard & -bitboard) - 1);
 	} else {
@@ -199,10 +199,10 @@ void print_bitboard(u64 bitboard) {
 	printf(" > Bit count:\t%d\n", count_bits(bitboard));
 
 	// print the LSB index in the bitboard
-	printf(" > LSB index:\t%d\n", get_lsb_index(bitboard));
+	printf(" > LSB index:\t%d\n", lsb_index(bitboard));
 
 	// print the LSB index in the bitboard
-	printf(" > LSB coords:\t%s\n", square_to_coordinates[get_lsb_index(bitboard)]);
+	printf(" > LSB coords:\t%s\n", square_to_coordinates[lsb_index(bitboard)]);
 
 }
 
@@ -907,7 +907,7 @@ u64 set_occupancy(int index, int bits_in_mask, u64 attack_mask) {
 	// loop over the range of bits within the attack mask
 	for (int count = 0; count < bits_in_mask; count++) {
 		// get LSB index of attack mask
-		int square = get_lsb_index(attack_mask);
+		int square = lsb_index(attack_mask);
 
 		// pop LSB in attack mask
 		pop_bit(attack_mask, square);
@@ -1238,7 +1238,7 @@ static inline void generate_moves_for_piece(move_list* _move_list, int piece, u6
 
 	// loop over bitboard for source squares
 	while (bitboard) {
-		source_square = get_lsb_index(bitboard);
+		source_square = lsb_index(bitboard);
 
 		// initialize piece attacks
 		u64 attacks = attacks_for_piece(piece, source_square);
@@ -1246,7 +1246,7 @@ static inline void generate_moves_for_piece(move_list* _move_list, int piece, u6
 		// loop over attacks bitboard for target squares
 		while (attacks) {
 			// initialize target square
-			target_square = get_lsb_index(attacks);
+			target_square = lsb_index(attacks);
 
 			// quiet move
 			if (!get_bit(((side == white) ? occupancies[black] : occupancies[white]), target_square)) {
@@ -1280,7 +1280,7 @@ static inline void generate_pawn_moves(move_list* _move_list, int pawn, u64 bitb
 	int opponent 	= (side == white) ? black : white;
 	
 	while (bitboard) {
-		int source_square = get_lsb_index(bitboard);
+		int source_square = lsb_index(bitboard);
 		int target_square = (side == white) ? 
 			source_square - 8 : 
 			source_square + 8 ;
@@ -1314,7 +1314,7 @@ static inline void generate_pawn_moves(move_list* _move_list, int pawn, u64 bitb
 		u64 attacks = pawn_attacks[side][source_square] & occupancies[opponent];
 
 		while (attacks) {
-			target_square = get_lsb_index(attacks);
+			target_square = lsb_index(attacks);
 
 			// handle promotion captures
 			if ((side == white) ?
@@ -1340,7 +1340,7 @@ static inline void generate_pawn_moves(move_list* _move_list, int pawn, u64 bitb
 
 			// make sure en-passant is available
 			if (open_enpassant_attack) {
-				target_square = get_lsb_index(open_enpassant_attack);
+				target_square = lsb_index(open_enpassant_attack);
 				add_move(_move_list, encode_move(source_square, target_square, pawn, 0, 1, 0, 1, 0));
 			}
 		}
@@ -1558,8 +1558,8 @@ static inline int make_move(int move, int moves_flag) {
 		// check if the king is not being exposed into check
 		if (is_square_attacked(
 				((side == white) ? 
-					get_lsb_index(bitboards[k]) : 
-					get_lsb_index(bitboards[K])),
+					lsb_index(bitboards[k]) : 
+					lsb_index(bitboards[K])),
 				side)) {
 			// move is illegal
 			restore_board();
@@ -1819,7 +1819,55 @@ void perft_test(int depth) {
 
 #pragma region Evaluation
 
+int material_score[12] = {
+	   100,	// white pawn
+	   300,	// white knight
+	   350,	// white bishop
+	   500,	// white rook
+	  1000,	// white queen
+	 10000, // white king
+	  -100, // black pawn
+	  -300,	// black knight
+	  -350,	// black bishop
+	  -500,	// black rook
+	 -1000,	// black queen
+	-10000,	// black king
+};
 
+/**
+ * Evaluate the position of the board.
+ * @return The score of the position.
+ */
+static inline int evaluate() {
+	// static evaluation score
+	int score = 0;
+
+	// current pieces bitboard copy
+	u64 bitboard;
+
+	int piece, square;
+
+	// loop over all piece bitboards
+	for (int bb_piece = P; bb_piece <= k; bb_piece++) {
+		// initialize piece bitboard copy
+		bitboard = bitboards[bb_piece];
+
+		// loop over all pieces within a bitboard
+		while (bitboard) {
+			piece = bb_piece;
+			square = lsb_index(bitboard);
+
+			// evaluate material weight
+			score += material_score[piece];
+
+			// pop lsb
+			pop_bit(bitboard, square);
+		}
+	}
+
+	// return the final evaluation based on side
+	return (side == white) ? score : -score;
+}
 
 #pragma endregion
 
@@ -2067,8 +2115,19 @@ int main() {
 	// initialize all
 	init_all();
 
-	// conmnect with GUI
-	uci_loop();
+	// debug mode variable
+	int debug = 1;
+
+	if (debug) {
+		printf("debugging...\n");
+		parse_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 ");
+		print_board();
+		printf("score: %d\n", evaluate());
+	}
+	else {
+		// conmnect with GUI
+		uci_loop();
+	}
 
 	return 0;
 } 
