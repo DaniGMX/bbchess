@@ -1817,6 +1817,27 @@ void perft_test(int depth) {
 
 #pragma endregion
 
+#pragma region Evaluation
+
+
+
+#pragma endregion
+
+#pragma region Search
+
+/**
+ * Searches the best move for the current position.
+ * @param depth Maximum depth of the search.
+ * @return The best move for the current position.
+ */
+int search_position(int depth) {
+	// best move placeholder
+	printf("bestmove d2d4\n");
+	return 1;
+}
+
+#pragma endregion
+
 #pragma region UCI
 
 /**
@@ -1939,6 +1960,9 @@ void parse_position_command(char* input_str) {
 			current_char++;
 		}
 	}
+
+	// prinf board
+	print_board();
 }
 
 /**
@@ -1961,8 +1985,79 @@ void parse_go_command(char* input_str) {
 	}
 
 	// search position
-	// search_position(depth);
-	printf(" > Depth: %d\n", depth);
+	search_position(depth);
+	printf("depth %d\n", depth);
+}
+
+/* 
+	GUI 	-> isready
+	Engine 	-> readyok
+	GUI		-> ucinewgame
+*/
+
+/**
+ * Main UCI loop
+ */
+void uci_loop() {
+	// reset stdin & stdout buffers
+	setbuf(stdin, NULL);
+	setbuf(stdout, NULL);
+
+	// define a user / GUI
+	char input[2000];
+
+	// print engine info
+	printf("id name BBChess\n");
+	printf("id author DaniGMX\n");
+	printf("uciok\n");
+
+	// main UCI loop
+	while (1) {
+		// reset GUI input
+		memset(input, 0, sizeof(input));
+
+		// make sure output reaches GUI
+		fflush(stdout);
+
+		// get user input
+		if (!fgets(input, sizeof(input), stdin))
+			continue;
+
+		// make sure input is available
+		else if (input[0] == '\n')
+			continue;
+
+		// parse UCI "isready" command
+		else if (strncmp(input, "isready", 7) == 0) {
+			printf("readyok\n");
+			continue;
+		}
+
+		// parse UCI "position" command
+		else if (strncmp(input, "position", 8) == 0)
+			parse_position_command(input);
+
+		// parse UCI "ucinewgame" command
+
+		else if (strncmp(input, "ucinewgame", 10) == 0)
+			parse_position_command("position startpos");
+
+		// parse UCI "go" command
+		else if (strncmp(input, "go", 2) == 0)
+			parse_go_command(input);
+
+		// parse UCI "quit" command
+		else if (strncmp(input, "quit", 4) == 0)
+			break;
+
+		// parse UCI "uci" command
+		else if (strncmp(input, "uci", 3) == 0) {
+			// print engine info
+			printf("id name BBChess\n");
+			printf("id author DaniGMX\n");
+			printf("uciok\n");
+		}
+	}
 }
 
 #pragma endregion
@@ -1972,13 +2067,8 @@ int main() {
 	// initialize all
 	init_all();
 
-	int start_time = get_time_millis();
-
-	// parse "position"
-	parse_position_command("position startpos moves e2e4 e7e5 g1f3");
-	print_board();
-
-	parse_go_command("go deth 7");
+	// conmnect with GUI
+	uci_loop();
 
 	return 0;
 } 
