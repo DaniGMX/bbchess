@@ -2,6 +2,7 @@
 // system headers
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #ifdef WIN64
 	#include <windows.h>
@@ -1145,8 +1146,8 @@ char promoted_pieces[] = {
  * Print the UCI move representation of a move.
  * @param move The move to print.
  */
-void print_UCI_move(int move) {
-	printf("%s%s%c\n", 
+void print_uci_move(int move) {
+	printf("%s%s%c", 
 		square_to_coordinates[decode_move_source_square(move)],
 		square_to_coordinates[decode_move_target_square(move)],
 		promoted_pieces[decode_move_promoted_piece(move)]);
@@ -1802,7 +1803,7 @@ void perft_test(int depth) {
 
 		// print the move
 		printf(" move: ");
-		print_UCI_move(move);
+		print_uci_move(move);
 		printf("     node: %ld\n", curr_nodes);
 	}
 
@@ -1954,14 +1955,104 @@ static inline int evaluate() {
 
 #pragma region Search
 
+// half move counter
+int ply;
+
+// best move. This will be replace for the PV (Principal Variation)
+int best_move;
+
+/**
+ * Negamax search with alpha-beta pruning. This is the main search function.
+ * This searches the tree from the root to the leaf and return the best move.
+ * @param alpha The lower bound of the search.
+ * @param beta The upper bound of the search.
+ * @param depth The depth of the search.
+ * @return The best move.
+ */
+static inline int negamax(int alpha, int beta, int depth) {
+	// Escape condition
+	if (depth == 0)
+		return evaluate();
+
+	// increment nodes count
+	nodes++;
+
+	// best move so far
+	int curr_best_move;
+
+	// old alpha
+	int old_alpha = alpha;
+
+	// create move list instance
+	move_list _move_list[1];
+
+	// generate moves
+	generate_moves(_move_list);
+	print_move_list(_move_list);
+	// loop over all moves in the move liust
+	for (int i = 0; i < _move_list->last; i++) {
+		int move = _move_list->arr[i];
+
+		// preserve current board state
+		save_board();
+
+		// increment ply
+		ply++;
+
+		// make sure to make only legal moves
+		if (make_move(move, all_moves) == 0) {
+			// decrement ply
+			ply--;
+
+			continue;
+		}
+
+		// score current move
+		int score = -negamax(-beta, -alpha, depth - 1);
+
+		// decrement ply
+		ply--;
+
+		// take move back (restore board)
+		restore_board();
+
+		// fail-hard beta cut-off
+		if (score >= beta) {
+			// node (move) fails high
+			return beta;
+		}
+
+		// found a better move
+		if (score > alpha) {
+			// PV node (move)
+			alpha = score;
+
+			// if root move
+			if (ply == 0)
+				curr_best_move = _move_list->arr[i];
+		}
+	}
+
+	if (old_alpha != alpha)
+		// initialize best move
+		best_move = curr_best_move;
+
+	// node (move) fails low
+	return alpha;
+}
+
 /**
  * Searches the best move for the current position.
  * @param depth Maximum depth of the search.
  * @return The best move for the current position.
  */
 int search_position(int depth) {
+	// find best move for a given position
+	int score = negamax(INT_MIN + 1, INT_MAX - 1, depth);
+
 	// best move placeholder
-	printf("bestmove d2d4\n");
+	printf("bestmove ");
+	print_uci_move(best_move);
 	return 1;
 }
 
@@ -2201,9 +2292,9 @@ int main() {
 
 	if (debug) {
 		printf("debugging...\n");
-		parse_fen("rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 1 ");
+		parse_fen(fen_starting_position);
 		print_board();
-		printf("score: %d\n", evaluate());
+		search_position(2);
 	}
 	else {
 		// conmnect with GUI
