@@ -1388,7 +1388,7 @@ static inline void genreate_castling_moves(move_list* _move_list, int king, u64 
 
 /**
  * Generate all pseudo legal moves for the given side.
- * @param move_list Move list to add the generated moves to, if any.
+ * @param _move_list Move list to add the generated moves to, if any.
  */
 static inline void generate_moves(move_list* _move_list) {
 	// init move count
@@ -1969,76 +1969,84 @@ int best_move;
  * @param depth The depth of the search.
  * @return The best move.
  */
-static inline int negamax(int alpha, int beta, int depth) {
-	// Escape condition
-	if (depth == 0)
-		return evaluate();
-
-	// increment nodes count
-	nodes++;
-
-	// best move so far
-	int curr_best_move;
-
-	// old alpha
-	int old_alpha = alpha;
-
-	// create move list instance
-	move_list _move_list[1];
-
-	// generate moves
+static inline int negamax(int alpha, int beta, int depth)
+{
+    // recurrsion escapre condition
+    if (depth == 0)
+        // return evaluation
+        return evaluate();
+    
+    // increment nodes count
+    nodes++;
+    
+    // best move so far
+    int best_sofar;
+    
+    // old value of alpha
+    int old_alpha = alpha;
+    
+    // create move list instance
+    move_list _move_list[1];
+    
+    // generate moves
+    // generate_moves_cmk(_move_list);
 	generate_moves(_move_list);
-	print_move_list(_move_list);
-	// loop over all moves in the move liust
-	for (int i = 0; i < _move_list->last; i++) {
-		int move = _move_list->arr[i];
+    
+    // loop over moves within a movelist
+    for (int count = 0; count < _move_list->last; count++)
+    {
+        // preserve board state
+        save_board();
+        
+        // increment ply
+        ply++;
+        
+        // make sure to make only legal moves
+        if (make_move(_move_list->arr[count], all_moves) == 0)
+        {
+            // decrement ply
+            ply--;
+            
+            // skip to next move
+            continue;
+        }
+        
+        // score current move
+        int score = -negamax(-beta, -alpha, depth - 1);
+        
+        // decrement ply
+        ply--;
 
-		// preserve current board state
-		save_board();
-
-		// increment ply
-		ply++;
-
-		// make sure to make only legal moves
-		if (make_move(move, all_moves) == 0) {
-			// decrement ply
-			ply--;
-
-			continue;
-		}
-
-		// score current move
-		int score = -negamax(-beta, -alpha, depth - 1);
-
-		// decrement ply
-		ply--;
-
-		// take move back (restore board)
-		restore_board();
-
-		// fail-hard beta cut-off
-		if (score >= beta) {
-			// node (move) fails high
-			return beta;
-		}
-
-		// found a better move
-		if (score > alpha) {
-			// PV node (move)
-			alpha = score;
-
-			// if root move
-			if (ply == 0)
-				curr_best_move = _move_list->arr[i];
-		}
-	}
-
-	if (old_alpha != alpha)
-		// initialize best move
-		best_move = curr_best_move;
-
-	// node (move) fails low
-	return alpha;
+        // take move back
+        restore_board();
+        
+        // fail-hard beta cutoff
+        if (score >= beta)
+        {
+            // node (move) fails high
+            return beta;
+        }
+        
+        // found a better move
+        if (score > alpha)
+        {
+            // PV node (move)
+            alpha = score;
+            
+            // if root move
+            if (ply == 0)
+                // associate best move with the best score
+                best_sofar = _move_list->arr[count];
+        }
+    }
+    
+    // found better move
+    if (old_alpha != alpha)
+        // init best move
+        best_move = best_sofar;
+    
+    // node (move) fails low
+    return alpha;
 }
 
 /**
@@ -2048,11 +2056,12 @@ static inline int negamax(int alpha, int beta, int depth) {
  */
 int search_position(int depth) {
 	// find best move for a given position
-	int score = negamax(INT_MIN + 1, INT_MAX - 1, depth);
+	int score = negamax(-50000, 50000, depth);
 
 	// best move placeholder
 	printf("bestmove ");
 	print_uci_move(best_move);
+	printf("\n");
 	return 1;
 }
 
@@ -2068,6 +2077,7 @@ int search_position(int depth) {
 int parse_move(char* move_str) {
 	move_list _move_list[1];
 
+	// generate_moves_cmk(_move_list);
 	generate_moves(_move_list);
 
 	// parse source and target squares
@@ -2189,24 +2199,26 @@ void parse_position_command(char* input_str) {
  * Parse UCI "go" command from a given input string.
  * @param input_str The input string.
  */
-void parse_go_command(char* input_str) {
-	// initialize the depth
-	int depth = -1;
-
-	// initialize character pointer
-	char* current_char = strstr(input_str, "depth");
-
-	if (current_char) {
-		// get depth from characters after "go"
-		depth = atoi(current_char + 6);
-	}
-	else {
-		depth = 6;
-	}
-
-	// search position
-	search_position(depth);
-	printf("depth %d\n", depth);
+void parse_go_command(char *command)
+{
+    // init depth
+    int depth = -1;
+    
+    // init character pointer to the current depth argument
+    char *current_depth = NULL;
+    
+    // handle fixed depth search
+    if (current_depth = strstr(command, "depth"))
+        //convert string to integer and assign the result value to depth
+        depth = atoi(current_depth + 6);
+    
+    // different time controls placeholder
+    else
+        depth = 6;
+    
+	printf("depth: %d", depth);
+    // search position
+    search_position(depth);
 }
 
 /* 
@@ -2288,18 +2300,19 @@ int main() {
 	init_all();
 
 	// debug mode variable
-	int debug = 1;
+	int debug = 0;
 
 	if (debug) {
 		printf("debugging...\n");
 		parse_fen(fen_starting_position);
 		print_board();
-		search_position(2);
+		search_position(1);
 	}
 	else {
 		// conmnect with GUI
 		uci_loop();
 	}
 
+	getchar();
 	return 0;
 } 
