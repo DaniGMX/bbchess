@@ -1978,6 +1978,12 @@ static inline int negamax(int alpha, int beta, int depth)
     
     // increment nodes count
     nodes++;
+
+	// check if king is in check
+	int in_check = is_square_attacked(lsb_index(bitboards[(side == white) ? K : k]), side ^ 1);
+
+	// legal moves counter
+	int legal_moves = 0;
     
     // best move so far
     int best_sofar;
@@ -2010,6 +2016,9 @@ static inline int negamax(int alpha, int beta, int depth)
             // skip to next move
             continue;
         }
+
+		// increment legal moves
+		legal_moves++;
         
         // score current move
         int score = -negamax(-beta, -alpha, depth - 1);
@@ -2039,6 +2048,18 @@ static inline int negamax(int alpha, int beta, int depth)
                 best_sofar = _move_list->arr[count];
         }
     }
+
+	// there are no legal moves to make in this position
+	if (legal_moves == 0) {
+		// king is in check, return -infinity
+		if (in_check)
+			return -49000 + ply; // adding ply is necessary in order to avoid stalemate
+
+		// king is NOT in check, return stalemate score, this is a draw
+		else {
+			return 0;
+		}
+	}
     
     // found better move
     if (old_alpha != alpha)

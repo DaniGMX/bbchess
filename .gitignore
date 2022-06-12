@@ -63,3 +63,6 @@ dkms.conf
 
 # Built Visual Studio Code Extensions
 *.vsix
+
+# Ignore versions of the binary executables
+versions/*
