@@ -1431,7 +1431,7 @@ static inline void generate_moves(move_list* _move_list) {
 }
 
 // enum to determine if the search will be done by all moves or only the captures
-enum { all_moves, captures };
+enum { all_moves, only_captures };
 
 // caslting rights
 const int castling_rights[64] = {
@@ -1474,8 +1474,17 @@ static inline int make_move(int move, int moves_flag) {
 		// handle captures
 		if (capture_flag) {
 			// pick bitboards ranges depending on side
-			int start_piece = (side == white) ? p : P;
-			int end_piece = (side == white) ? k : K;
+			// int start_piece = (side == white) ? p : P;
+			// int end_piece = (side == white) ? k : K;
+			int start_piece, end_piece;
+
+			if (side == white) {
+				start_piece = p;
+				end_piece = k;
+			} else {
+				start_piece = P;
+				end_piece = K;
+			}
 
 			// loop over bitboards opposite to the side to move
 			for (int opp_piece = start_piece; opp_piece <= end_piece; opp_piece++) {
@@ -1540,18 +1549,15 @@ static inline int make_move(int move, int moves_flag) {
 		// reset occupancies
 		memset(occupancies, 0ULL, sizeof(occupancies));
 
-		// loop over pieces to set occupancies
-		for (int piece = P; piece <= k; piece++) {
-			// white pieces
-			if (piece < p) {
-				occupancies[white] |= bitboards[piece];
-			}
-			// black pieces
-			else {
-				occupancies[black] |= bitboards[piece];
-			}
-		}
-		occupancies[both] = occupancies[white] | occupancies[black];
+		// loop over pieces to set occupancies and update afterwards
+		for (int piece = P; piece <= K; piece++)
+			occupancies[white] |= bitboards[piece];
+
+		for (int piece = p; piece <= k; piece++)
+			occupancies[black] |= bitboards[piece];
+			
+		occupancies[both] |= occupancies[white];
+		occupancies[both] |= occupancies[black];
 
 		// change side (this is done with an XOR with 1 because white = 00 and black = 01 in binary)
 		side ^= 1;
@@ -1582,8 +1588,6 @@ static inline int make_move(int move, int moves_flag) {
 		else
 			return 0;
 	}
-
-	return 0;
 }
 
 #pragma endregion
@@ -1961,6 +1965,77 @@ int ply;
 // best move. This will be replace for the PV (Principal Variation)
 int best_move;
 
+static inline int quiescence(int alpha, int beta) {
+	// quiescence recursion escape conditions
+	int evaluation = evaluate();
+
+	// fail-hard beta cutoff
+	if (evaluation >= beta)
+	{
+		// node (move) fails high
+		return beta;
+	}
+	
+	// found a better move
+	if (evaluation > alpha)
+	{
+		// PV node (move)
+		alpha = evaluation;
+	}
+	
+	// create move list instance
+    move_list _move_list[1];
+    
+    // generate moves
+	generate_moves(_move_list);
+    
+    // loop over moves within a movelist
+    for (int count = 0; count < _move_list->last; count++)
+    {
+        // preserve board state
+        save_board();
+        
+        // increment ply
+        ply++;
+        
+        // make sure to make only legal moves
+        if (make_move(_move_list->arr[count], only_captures) == 0)
+        {
+            // decrement ply
+            ply--;
+            
+            // skip to next move
+            continue;
+        }
+
+        // score current move
+        int score = -quiescence(-beta, -alpha);
+        
+        // decrement ply
+        ply--;
+
+        // take move back
+        restore_board();
+        
+        // fail-hard beta cutoff
+        if (score >= beta)
+        {
+            // node (move) fails high
+            return beta;
+        }
+        
+        // found a better move
+        if (score > alpha)
+        {
+            // PV node (move)
+            alpha = score;
+        }
+    }
+
+	// return the node that fails low
+	return alpha;
+}
+
 /**
  * Negamax search with alpha-beta pruning. This is the main search function.
  * This searches the tree from the root to the leaf and return the best move.
@@ -1973,8 +2048,8 @@ static inline int negamax(int alpha, int beta, int depth)
 {
     // recurrsion escape condition
     if (depth == 0)
-        // return evaluation
-        return evaluate();
+        // ru quiescence search
+        return quiescence(alpha, beta);
     
     // increment nodes count
     nodes++;
