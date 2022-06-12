@@ -1971,7 +1971,7 @@ int best_move;
  */
 static inline int negamax(int alpha, int beta, int depth)
 {
-    // recurrsion escapre condition
+    // recurrsion escape condition
     if (depth == 0)
         // return evaluation
         return evaluate();
@@ -1980,7 +1980,10 @@ static inline int negamax(int alpha, int beta, int depth)
     nodes++;
 
 	// check if king is in check
-	int in_check = is_square_attacked(lsb_index(bitboards[(side == white) ? K : k]), side ^ 1);
+	int in_check = is_square_attacked(
+		(side == white) ? lsb_index(bitboards[K]) : lsb_index(bitboards[k]),
+		side ^ 1
+	);
 
 	// legal moves counter
 	int legal_moves = 0;
@@ -1995,7 +1998,6 @@ static inline int negamax(int alpha, int beta, int depth)
     move_list _move_list[1];
     
     // generate moves
-    // generate_moves_cmk(_move_list);
 	generate_moves(_move_list);
     
     // loop over moves within a movelist
@@ -2056,9 +2058,8 @@ static inline int negamax(int alpha, int beta, int depth)
 			return -49000 + ply; // adding ply is necessary in order to avoid stalemate
 
 		// king is NOT in check, return stalemate score, this is a draw
-		else {
+		else
 			return 0;
-		}
 	}
     
     // found better move
@@ -2076,14 +2077,19 @@ static inline int negamax(int alpha, int beta, int depth)
  * @return The best move for the current position.
  */
 int search_position(int depth) {
+	printf("Searching (depth = %d)...\n", depth);
+
 	// find best move for a given position
 	int score = negamax(-50000, 50000, depth);
 
-	// best move placeholder
-	printf("bestmove ");
-	print_uci_move(best_move);
-	printf("\n");
-	return 1;
+	if (best_move) {
+		// best move placeholder
+		printf("info score cp %d depth %d nodes %ld\n\n", score, depth, nodes);
+		printf("bestmove ");
+		print_uci_move(best_move);
+		printf("\n");
+		return 1;
+	}
 }
 
 #pragma endregion
@@ -2237,7 +2243,7 @@ void parse_go_command(char *command)
     else
         depth = 6;
     
-	printf("depth: %d", depth);
+	printf("depth: %d\n", depth);
     // search position
     search_position(depth);
 }
