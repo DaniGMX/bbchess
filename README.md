@@ -67,14 +67,14 @@ The thing about encoding moves into integers instead of a structure holding the 
 How do we encode a move into a 32-bit integer then? Well, we just need to make use of the integer's bits and occupy the minimum number of bits we need to represent each field of the move. We basically only need 6 nibbles total (24 bits) in order to store all the information we need. The occupancy of the bits is shown below:
 
 ```
-0000 0000 0000 0000 0000 0000 0011 1111 	source square			0x0000003F
-0000 0000 0000 0000 0000 1111 1100 0000 	target square			0x00000FC0
-0000 0000 0000 0000 1111 0000 0000 0000 	piece					0x0000F000
-0000 0000 0000 1111 0000 0000 0000 0000 	promoted piece			0x000F0000
-0000 0000 0001 0000 0000 0000 0000 0000 	capture flag			0x00100000
-0000 0000 0010 0000 0000 0000 0000 0000 	double pawn push flag	0x00200000
-0000 0000 0100 0000 0000 0000 0000 0000 	enpassant flag			0x00400000
-0000 0000 1000 0000 0000 0000 0000 0000 	castling flag			0x00800000
+0000 0000 0000 0000 0000 0000 0011 1111 	source square			      0x0000003F
+0000 0000 0000 0000 0000 1111 1100 0000 	target square			      0x00000FC0
+0000 0000 0000 0000 1111 0000 0000 0000 	piece					          0x0000F000
+0000 0000 0000 1111 0000 0000 0000 0000 	promoted piece		      0x000F0000
+0000 0000 0001 0000 0000 0000 0000 0000 	capture flag			      0x00100000
+0000 0000 0010 0000 0000 0000 0000 0000 	double pawn push flag	  0x00200000
+0000 0000 0100 0000 0000 0000 0000 0000 	enpassant flag			    0x00400000
+0000 0000 1000 0000 0000 0000 0000 0000 	castling flag			      0x00800000
 ```
 
 We only need 6 bits for both source and target squares because there are 64 squares in the chessboard, indexed from 0 (a1) to 63 (h8), and therefore, the maximum number (63) is represented by a minimum of 6 bits. For the piece, as there are 12 pieces, we need a minimum of 4 bits to represent every piece, 4 bits for the promoted piece, in case the move is a promotion, and 1 bit per flag (move is a capture, a double pawn push, an en enpassant move or a clastling move).

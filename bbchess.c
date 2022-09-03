@@ -1588,6 +1588,8 @@ static inline int make_move(int move, int moves_flag) {
 		else
 			return 0;
 	}
+
+	return 0;
 }
 
 #pragma endregion
@@ -1959,13 +1961,158 @@ static inline int evaluate() {
 
 #pragma region Search
 
+// most valuable victim & less valuable attacker
+
+/*
+                          
+    (Victims) Pawn Knight Bishop   Rook  Queen   King
+  (Attackers)
+        Pawn   105    205    305    405    505    605
+      Knight   104    204    304    404    504    604
+      Bishop   103    203    303    403    503    603
+        Rook   102    202    302    402    502    602
+       Queen   101    201    301    401    501    601
+        King   100    200    300    400    500    600
+*/
+static int mvv_lva[12][12] = {
+ 	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
+
+	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
+};
+
+// killer moves [id][ply]
+int killer_moves[2][64];
+
+// history moves [piece][square]
+int history_moves[12][64];
+
 // half move counter
 int ply;
 
 // best move. This will be replace for the PV (Principal Variation)
 int best_move;
 
+static inline int score_move(int move) {
+	// score capture move
+	if (decode_move_capture(move)) {
+        // init target piece
+        int target_piece = P;
+        
+        // pick up bitboard piece index ranges depending on side
+        int start_piece, end_piece;
+        
+        // pick up side to move
+        if (side == white) { start_piece = p; end_piece = k; }
+        else { start_piece = P; end_piece = K; }
+        
+        // loop over bitboards opposite to the current side to move
+        for (int bb_piece = start_piece; bb_piece <= end_piece; bb_piece++)
+        {
+            // if there's a piece on the target square
+            if (get_bit(bitboards[bb_piece], decode_move_target_square(move)))
+            {
+                // remove it from corresponding bitboard
+                target_piece = bb_piece;
+                break;
+            }
+        }
+
+		return mvv_lva[decode_move_piece(move)][target_piece] + 10000;
+	}
+
+	// socre quiet move
+	else {
+		// score first killer move
+		if (killer_moves[0][ply] == move)
+			return 9000;
+
+		// score second killer move
+		else if (killer_moves[1][ply] == move)
+			return 8000;
+
+		// score history moves
+		else 
+			return history_moves[decode_move_piece(move)][decode_move_target_square(move)];
+	}
+
+	return 0;
+}
+
+static inline void sort_moves(move_list *_move_list)
+{
+    // move scores
+    int move_scores[_move_list->last];
+	
+    // score all the moves within a move list
+    for (int count = 0; count < _move_list->last; count++)
+        // score move
+        move_scores[count] = score_move(_move_list->arr[count]);
+    
+    // loop over current move within a move list
+    for (int current_move = 0; current_move < _move_list->last; current_move++)
+    {
+        // loop over next move within a move list
+        for (int next_move = current_move + 1; next_move < _move_list->last; next_move++)
+        {
+            // compare current and next move scores
+            if (move_scores[current_move] < move_scores[next_move])
+            {
+                // swap scores
+                int temp_score = move_scores[current_move];
+                move_scores[current_move] = move_scores[next_move];
+                move_scores[next_move] = temp_score;
+                
+                // swap moves
+                int temp_move = _move_list->arr[current_move];
+                _move_list->arr[current_move] = _move_list->arr[next_move];
+                _move_list->arr[next_move] = temp_move;
+            }
+        }
+    }
+}
+
+// print move (for UCI purposes)
+void print_move(int move)
+{
+    if (decode_move_promoted_piece(move))
+        printf("%s%s%c", square_to_coordinates[decode_move_source_square(move)],
+                           square_to_coordinates[decode_move_target_square(move)],
+                           promoted_pieces[decode_move_promoted_piece(move)]);
+    else
+        printf("%s%s", square_to_coordinates[decode_move_source_square(move)],
+                           square_to_coordinates[decode_move_target_square(move)]);
+}
+
+void print_move_scores(move_list *_move_list)
+{
+    printf("     Move scores:\n\n");
+        
+    // loop over moves within a move list
+    for (int count = 0; count <= _move_list->last; count++)
+    {
+        printf("     move: ");
+        print_move(_move_list->arr[count]);
+        printf(" score: %d\n", score_move(_move_list->arr[count]));
+    }
+}
+
+int sorting;
+int quiescense;
+
 static inline int quiescence(int alpha, int beta) {
+	// increment nodes count
+	nodes++;
+
 	// quiescence recursion escape conditions
 	int evaluation = evaluate();
 
@@ -1988,6 +2135,9 @@ static inline int quiescence(int alpha, int beta) {
     
     // generate moves
 	generate_moves(_move_list);
+
+	// mvv-lva sorting
+	sort_moves(_move_list);
     
     // loop over moves within a movelist
     for (int count = 0; count < _move_list->last; count++)
@@ -2056,9 +2206,13 @@ static inline int negamax(int alpha, int beta, int depth)
 
 	// check if king is in check
 	int in_check = is_square_attacked(
-		(side == white) ? lsb_index(bitboards[K]) : lsb_index(bitboards[k]),
+		(side == white) 
+			? lsb_index(bitboards[K]) 
+			: lsb_index(bitboards[k]),
 		side ^ 1
 	);
+
+	if (in_check) depth++;
 
 	// legal moves counter
 	int legal_moves = 0;
@@ -2074,6 +2228,9 @@ static inline int negamax(int alpha, int beta, int depth)
     
     // generate moves
 	generate_moves(_move_list);
+
+	// mvv-lva sorting
+	sort_moves(_move_list);
     
     // loop over moves within a movelist
     for (int count = 0; count < _move_list->last; count++)
@@ -2109,6 +2266,10 @@ static inline int negamax(int alpha, int beta, int depth)
         // fail-hard beta cutoff
         if (score >= beta)
         {
+			// store killer moves
+			killer_moves[1][ply] = killer_moves[0][ply];
+			killer_moves[0][ply] = _move_list->arr[count];
+
             // node (move) fails high
             return beta;
         }
@@ -2116,6 +2277,9 @@ static inline int negamax(int alpha, int beta, int depth)
         // found a better move
         if (score > alpha)
         {
+			// store history moves
+			history_moves[decode_move_piece(_move_list->arr[count])][decode_move_target_square(_move_list->arr[count])] += depth;
+
             // PV node (move)
             alpha = score;
             
@@ -2151,19 +2315,19 @@ static inline int negamax(int alpha, int beta, int depth)
  * @param depth Maximum depth of the search.
  * @return The best move for the current position.
  */
-int search_position(int depth) {
-	printf("Searching (depth = %d)...\n", depth);
+void search_position(int depth) {
+	// printf("Searching (depth = %d)...\n", depth);
 
 	// find best move for a given position
 	int score = negamax(-50000, 50000, depth);
 
 	if (best_move) {
+		printf("> Found best move!\n");
 		// best move placeholder
-		printf("info score cp %d depth %d nodes %ld\n\n", score, depth, nodes);
-		printf("bestmove ");
+		//printf(/*"info score cp */"%d depth %d nodes %ld\n\n", score, depth, nodes);
+		printf("> Bestmove:\t\t");
 		print_uci_move(best_move);
 		printf("\n");
-		return 1;
 	}
 }
 
@@ -2310,7 +2474,7 @@ void parse_go_command(char *command)
     char *current_depth = NULL;
     
     // handle fixed depth search
-    if (current_depth = strstr(command, "depth"))
+    if (current_depth == strstr(command, "depth"))
         //convert string to integer and assign the result value to depth
         depth = atoi(current_depth + 6);
     
@@ -2402,19 +2566,32 @@ int main() {
 	init_all();
 
 	// debug mode variable
-	int debug = 0;
+	int debug = 1;
 
 	if (debug) {
-		printf("debugging...\n");
-		parse_fen(fen_starting_position);
+		parse_fen(fen_starting_position	);
 		print_board();
-		search_position(1);
+		sorting = 1;
+		quiescense = 1;
+		int depth = 5;
+
+		printf("--- SEARCH ---\n");
+		printf("> Quiescense search:\t%s\n", quiescense ? "yes" : "no");
+		printf("> MVV-LVA sorting:\t%s\n", sorting ? "yes" : "no");
+		printf("> Depth:\t\t%d\n", depth);
+		printf("> Begin search!\n");
+		printf("> Seraching...\n");
+		int start = get_time_millis();
+		search_position(depth);
+		int end = get_time_millis();
+		printf("> Total num of nodes:\t%ld\n", nodes);
+		printf("> Total search time:\t%d ms\n", end - start);
 	}
 	else {
 		// conmnect with GUI
 		uci_loop();
 	}
 
-	getchar();
 	return 0;
 } 
+
