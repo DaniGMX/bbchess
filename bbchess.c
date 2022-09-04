@@ -2566,7 +2566,7 @@ int main() {
 	init_all();
 
 	// debug mode variable
-	int debug = 1;
+	int debug = 0;
 
 	if (debug) {
 		parse_fen(fen_starting_position	);
