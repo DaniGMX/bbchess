@@ -2105,6 +2105,8 @@ void print_move_scores(move_list *_move_list)
 }
 
 static inline int quiescence(int alpha, int beta) {
+	nodes++;
+
 	// quiescence recursion escape conditions
 	int evaluation = evaluate();
 
@@ -2127,6 +2129,8 @@ static inline int quiescence(int alpha, int beta) {
     
     // generate moves
 	generate_moves(_move_list);
+
+	sort_moves(_move_list);
     
     // loop over moves within a movelist
     for (int count = 0; count < _move_list->last; count++)
@@ -2199,6 +2203,9 @@ static inline int negamax(int alpha, int beta, int depth)
 		side ^ 1
 	);
 
+	if (in_check)
+		depth++;
+
 	// legal moves counter
 	int legal_moves = 0;
     
@@ -2213,6 +2220,8 @@ static inline int negamax(int alpha, int beta, int depth)
     
     // generate moves
 	generate_moves(_move_list);
+
+	sort_moves(_move_list);
     
     // loop over moves within a movelist
     for (int count = 0; count < _move_list->last; count++)
@@ -2248,6 +2257,9 @@ static inline int negamax(int alpha, int beta, int depth)
         // fail-hard beta cutoff
         if (score >= beta)
         {
+			killer_moves[1][ply] = killer_moves[0][ply];
+			killer_moves[0][ply] = _move_list->arr[count];
+
             // node (move) fails high
             return beta;
         }
@@ -2255,6 +2267,10 @@ static inline int negamax(int alpha, int beta, int depth)
         // found a better move
         if (score > alpha)
         {
+			int piece = decode_move_piece(_move_list->arr[count]);
+			int target_square = decode_move_target_square(_move_list->arr[count]);
+			history_moves[piece][target_square] += depth;
+
             // PV node (move)
             alpha = score;
             
