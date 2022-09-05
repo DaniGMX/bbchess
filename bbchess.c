@@ -1959,11 +1959,150 @@ static inline int evaluate() {
 
 #pragma region Search
 
+// most valuable victim & less valuable attacker
+
+/*
+                          
+    (Victims) Pawn Knight Bishop   Rook  Queen   King
+  (Attackers)
+        Pawn   105    205    305    405    505    605
+      Knight   104    204    304    404    504    604
+      Bishop   103    203    303    403    503    603
+        Rook   102    202    302    402    502    602
+       Queen   101    201    301    401    501    601
+        King   100    200    300    400    500    600
+*/
+static int mvv_lva[12][12] = {
+ 	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600,
+
+	105, 205, 305, 405, 505, 605,  105, 205, 305, 405, 505, 605,
+	104, 204, 304, 404, 504, 604,  104, 204, 304, 404, 504, 604,
+	103, 203, 303, 403, 503, 603,  103, 203, 303, 403, 503, 603,
+	102, 202, 302, 402, 502, 602,  102, 202, 302, 402, 502, 602,
+	101, 201, 301, 401, 501, 601,  101, 201, 301, 401, 501, 601,
+	100, 200, 300, 400, 500, 600,  100, 200, 300, 400, 500, 600
+};
+
+// killer moves [id][ply]
+int killer_moves[2][64];
+
+// history moves [piece][square]
+int history_moves[12][64];
+
 // half move counter
 int ply;
 
 // best move. This will be replace for the PV (Principal Variation)
 int best_move;
+
+static inline int score_move(int move) {
+	// score capture move
+	if (decode_move_capture(move)) {
+        // init target piece
+        int target_piece = P;
+
+        // pick up bitboard piece index ranges depending on side
+        int start_piece, end_piece;
+
+        // pick up side to move
+        if (side == white) { start_piece = p; end_piece = k; }
+        else { start_piece = P; end_piece = K; }
+
+        // loop over bitboards opposite to the current side to move
+        for (int bb_piece = start_piece; bb_piece <= end_piece; bb_piece++)
+        {
+            // if there's a piece on the target square
+            if (get_bit(bitboards[bb_piece], decode_move_target_square(move)))
+            {
+                // remove it from corresponding bitboard
+                target_piece = bb_piece;
+                break;
+            }
+        }
+
+		return mvv_lva[decode_move_piece(move)][target_piece] + 10000;
+	}
+
+	// socre quiet move
+	else {
+		// score first killer move
+		if (killer_moves[0][ply] == move)
+			return 9000;
+
+		// score second killer move
+		else if (killer_moves[1][ply] == move)
+			return 8000;
+
+		// score history moves
+		else 
+			return history_moves[decode_move_piece(move)][decode_move_target_square(move)];
+	}
+
+	return 0;
+}
+
+static inline void sort_moves(move_list *_move_list)
+{
+    // move scores
+    int move_scores[_move_list->last];
+
+    // score all the moves within a move list
+    for (int count = 0; count < _move_list->last; count++)
+        // score move
+        move_scores[count] = score_move(_move_list->arr[count]);
+
+    // loop over current move within a move list
+    for (int current_move = 0; current_move < _move_list->last; current_move++)
+    {
+        // loop over next move within a move list
+        for (int next_move = current_move + 1; next_move < _move_list->last; next_move++)
+        {
+            // compare current and next move scores
+            if (move_scores[current_move] < move_scores[next_move])
+            {
+                // swap scores
+                int temp_score = move_scores[current_move];
+                move_scores[current_move] = move_scores[next_move];
+                move_scores[next_move] = temp_score;
+
+                // swap moves
+                int temp_move = _move_list->arr[current_move];
+                _move_list->arr[current_move] = _move_list->arr[next_move];
+                _move_list->arr[next_move] = temp_move;
+            }
+        }
+    }
+}
+
+// print move (for UCI purposes)
+void print_move(int move)
+{
+    if (decode_move_promoted_piece(move))
+        printf("%s%s%c", square_to_coordinates[decode_move_source_square(move)],
+                           square_to_coordinates[decode_move_target_square(move)],
+                           promoted_pieces[decode_move_promoted_piece(move)]);
+    else
+        printf("%s%s", square_to_coordinates[decode_move_source_square(move)],
+                           square_to_coordinates[decode_move_target_square(move)]);
+}
+
+void print_move_scores(move_list *_move_list)
+{
+    printf("     Move scores:\n\n");
+
+    // loop over moves within a move list
+    for (int count = 0; count <= _move_list->last; count++)
+    {
+        printf("     move: ");
+        print_move(_move_list->arr[count]);
+        printf(" score: %d\n", score_move(_move_list->arr[count]));
+    }
+}
 
 static inline int quiescence(int alpha, int beta) {
 	// quiescence recursion escape conditions
